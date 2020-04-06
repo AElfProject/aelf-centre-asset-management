@@ -5,14 +5,14 @@ using Google.Protobuf.WellKnownTypes;
 using Shouldly;
 using Xunit;
 
-namespace AElf.Contracts.HelloWorldContract
+namespace AElf.Contracts.CentreAssetManagement
 {
-    public class HelloWorldContractTest : HelloWorldContractTestBase
+    public class CentreAssetManagementTest : CentreAssetManagementTestBase
     {
         [Fact]
-        public async Task HelloCall_ReturnsHelloWorldMessage()
+        public async Task HelloCall_ReturnsCentreAssetManagementMessage()
         {
-            var txResult = await HelloWorldContractStub.Hello.SendAsync(new Empty());
+            var txResult = await CentreAssetManagementStub.Hello.SendAsync(new Empty());
             txResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
             var text = new HelloReturn();
             text.MergeFrom(txResult.TransactionResult.ReturnValue);

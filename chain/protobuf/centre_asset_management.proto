@@ -4,9 +4,9 @@
  *
  * You can use this as a basic template for new contracts.
  * 
- * When building Boilerplate or the contract project located in the "../contract/AElf.Contracts.CentreAssetManagementState/" 
+ * When building Boilerplate or the contract project located in the "../contract/AElf.Contracts.CentreAssetManagement/" 
  * protoc (the protobuf compiler) will be invoked and this file will produce a .c.cs file and .g.cs file, in the 
- * "../contract/AElf.Contracts.CentreAssetManagementState/Protobuf/Generated/" folder. 
+ * "../contract/AElf.Contracts.CentreAssetManagement/Protobuf/Generated/" folder. 
  */
 
 // the version of the language, use proto3 for contracts
