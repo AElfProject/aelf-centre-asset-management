@@ -33,9 +33,101 @@ service CentreAssetManagement {
     // this action take a google.protobuf.Empty (placeholder for void) as input
     // and returns a custom defined type: HelloReturn.
     rpc Hello (google.protobuf.Empty) returns (HelloReturn) { }
+    
+    rpc CreateHolder(HolderCreateDto) returns (HolderCreateReturnDto) { }
+    
+    rpc MoveAssetToMainAddress(AssetMoveDto) returns (AssetMoveReturnDto) { }
+    
+    rpc MoveAssetFromMainAddress(AssetMoveDto) returns (AssetMoveReturnDto) { }
+    
+    rpc GetCategoryContractCallAllowance(CategoryDto) returns (CategoryContractCallAllowanceDto) { }
+    
+    rpc Initialize(InitializeDto) returns (google.protobuf.Empty) { }
+    
+    rpc GetVirtualAddress(AssetMoveDto) returns(aelf.Address){
+        option (aelf.is_view) = true;
+    }
+}
+
+
+message ContractCallWhiteList{
+    aelf.Address address = 1;
+    repeated string method_names = 2;
+}
+
+message ContractCallWhiteLists{
+    repeated ContractCallWhiteList list = 1;
+}
+
+message CentreAssetManagementInfo{
+    //for example, {"vote","address_of_vote_contract_1,address_of_vote_contract_2"}
+    //address_of_vote_contract can be ELF_xxx_YYY
+    //or address_of_vote_contract can be a system contract name
+    //map<string,string> category_contract_white_lists = 1;
+    
+    
+    aelf.Address owner = 1;
+}
+
+message ManagementAddress{
+    aelf.Address address = 1;
+    int64 amount = 2; //how much asset the address can management
+    
+    int32 management_addresses_in_total = 3; // how many management keys do we need
+
+    //if we have key:(a,1000),(b,2000),(c,5000).
+    //when management_addresses_limit_amount = 2000, only b and c can be used.
+    int64 management_addresses_limit_amount = 4;
+}
+
+message HolderInfo{
+    string name = 1;
+    aelf.Address owner_address = 2; // the owner can change the settings
+    map<string,ManagementAddress> management_addresses = 3; // management address can manage asset
+    aelf.Address main_address = 4;
 }
 
 // a custom message, used as the return type of the Hello action
 message HelloReturn {
     string Value = 1;
+}
+
+message CategoryDto{
+    string category = 1;
+}
+
+message CategoryContractCallAllowanceDto{
+    string category = 1;
+    repeated ContractCallWhiteList list = 2;
+}
+
+
+message HolderCreateDto{
+    string name = 1;
+    aelf.Address owner_address = 2; // the owner can change the settings
+    repeated ManagementAddress management_addresses = 3; // management address can manage asset
+}
+
+message HolderCreateReturnDto{
+    aelf.Hash id = 1;
+    HolderInfo info = 2;
+}
+
+message AssetMoveDto{
+    string symbol = 1;
+    int64 amount = 2;
+    string user_token = 3;
+    aelf.Hash address_category_hash = 4;
+    aelf.Hash holder_id = 5;
+}
+
+message AssetMoveReturnDto{
+    bool success = 1;
+}
+
+message InitializeDto{
+    
+    //key is category
+    //(vote, {})
+    map<string,ContractCallWhiteLists> category_to_contact_call_white_lists_map = 1;
 }

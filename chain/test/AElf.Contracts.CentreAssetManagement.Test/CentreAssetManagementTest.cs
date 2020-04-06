@@ -18,5 +18,16 @@ namespace AElf.Contracts.CentreAssetManagement
             text.MergeFrom(txResult.TransactionResult.ReturnValue);
             text.Value.ShouldBe("Hello World!");
         }
+
+        [Fact]
+        public async Task MainTest()
+        {
+            AssetMoveDto assetMoveDto=new AssetMoveDto()
+            {
+                Amount = 1,
+                Symbol = "ELF",
+                UserToken = "UserToken1",
+            };
+        }
     }
 }

@@ -1,4 +1,6 @@
+using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp.State;
+using AElf.Types;
 
 namespace AElf.Contracts.CentreAssetManagement
 {
@@ -8,5 +10,19 @@ namespace AElf.Contracts.CentreAssetManagement
     public class CentreAssetManagementState : ContractState
     {
         // state definitions go here.
+
+        internal TokenContractContainer.TokenContractReferenceState TokenContract { get; set; }
+
+
+        public SingletonState<CentreAssetManagementInfo> CentreAssetManagementInfo { get; set; }
+
+        //Store what method can be called in one category
+        public MappedState<Hash,ContractCallWhiteLists> CategoryToContractCallWhiteListsMap { get; set; }
+        
+        public SingletonState<bool> Initialized { get; set; }
+        
+        
+        public MappedState<Hash,HolderInfo> HashToHolderInfoMap { get; set; }
+        
     }
 }
