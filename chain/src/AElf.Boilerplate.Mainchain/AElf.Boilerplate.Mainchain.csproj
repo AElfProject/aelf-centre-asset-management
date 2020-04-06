@@ -16,6 +16,9 @@
         <PackageReference Include="AElf.WebApp.Web" Version="1.0.0-preview1" />
         <PackageReference Include="AElf.OS" Version="1.0.0-preview1" />
         <PackageReference Include="AElf.Kernel.Token" Version="1.0.0-preview1" />
+        <ProjectReference Include="..\..\contract\AElf.Contracts.CentreAssetManagement\AElf.Contracts.CentreAssetManagement.csproj">
+          <ReferenceOutputAssembly>False</ReferenceOutputAssembly>
+        </ProjectReference>
         <ProjectReference Include="..\AElf.Boilerplate.Tester\AElf.Boilerplate.Tester.csproj" />
         <ProjectReference Include="..\AElf.Contracts.Deployer\AElf.Contracts.Deployer.csproj" />
     </ItemGroup>
@@ -27,11 +30,6 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </ProjectReference>
         <ProjectReference Include="..\..\contract\AElf.Contracts.BingoGameContract\AElf.Contracts.BingoGameContract.csproj">
-            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-            <OutputItemType>Contract</OutputItemType>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </ProjectReference>
-        <ProjectReference Include="..\..\contract\AElf.Contracts.HelloWorldContract\AElf.Contracts.HelloWorldContract.csproj">
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
             <OutputItemType>Contract</OutputItemType>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -110,8 +108,8 @@
         <ContractStub Include="..\..\protobuf\bingo_game_contract.proto">
             <Link>Protobuf\Proto\bingo_game_contract.proto</Link>
         </ContractStub>
-        <ContractStub Include="..\..\protobuf\hello_world_contract.proto">
-            <Link>Protobuf\Proto\hello_world_contract.proto</Link>
+        <ContractStub Include="..\..\protobuf\centre_asset_management.proto">
+            <Link>Protobuf\Proto\centre_asset_management.proto</Link>
         </ContractStub>
         <ContractStub Include="..\..\protobuf\lottery_demo_contract.proto">
             <Link>Protobuf\Proto\lottery_demo_contract.proto</Link>

@@ -2,7 +2,7 @@
 
 You can get more [demos and the document](https://github.com/AElfProject/aelf-sdk.js) in the github
 
-set your `helloWorldContractAddress` in the index.js
+set your `CentreAssetManagementContractAddress` in the index.js
 
 ```bash
 npm install

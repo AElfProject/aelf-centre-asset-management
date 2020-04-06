@@ -20,7 +20,7 @@ if (!aelf.isConnected()) {
   alert('Blockchain Node is not running.');
 }
 
-const helloWorldContractName = 'AElf.ContractNames.HelloWorldContract';
+const CentreAssetManagementContractName = 'AElf.ContractNames.CentreAssetManagementContract';
 
 const appName = 'hello world';
 
@@ -62,7 +62,7 @@ aelf.chain.getChainStatus().then(async result => {
     GenesisContractAddress
   } = result;
   const zeroC = await aelf.chain.contractAt(GenesisContractAddress, wallet);
-  const helloWorldAddress = await zeroC.GetContractAddressByName.call(sha256(helloWorldContractName));
+  const CentreAssetManagementAddress = await zeroC.GetContractAddressByName.call(sha256(CentreAssetManagementContractName));
 
   // 1.ugly way.
   // document.addEventListener('NightElf', result => {});
@@ -105,7 +105,7 @@ aelf.chain.getChainStatus().then(async result => {
           method: 'LOGIN',
           contracts: [{
             chainId: chainId,
-            contractAddress: helloWorldAddress,
+            contractAddress: CentreAssetManagementAddress,
             contractName: 'hello world',
             description: 'hello world contract',
             github: ''
@@ -126,12 +126,12 @@ aelf.chain.getChainStatus().then(async result => {
       }
 
       aelf.chain.contractAt(
-        helloWorldAddress,
+        CentreAssetManagementAddress,
         wallet,
         (error, result) => {
           console.log('>>>>>>>>>>>>> contractAtAsync >>>>>>>>>>>>>');
           console.log(error, result);
-          window.helloWorldC = result;
+          window.CentreAssetManagementC = result;
         }
       );
     };
@@ -139,12 +139,12 @@ aelf.chain.getChainStatus().then(async result => {
     const helloDom = document.getElementById('hello');
     helloDom.onclick = () => {
 
-      if (!window.helloWorldC) {
+      if (!window.CentreAssetManagementC) {
         alert('please click init contract at first');
         return;
       }
 
-      window.helloWorldC.Hello.call((err, result) => {
+      window.CentreAssetManagementC.Hello.call((err, result) => {
         console.log(err, result);
         alert(result.Value);
       });

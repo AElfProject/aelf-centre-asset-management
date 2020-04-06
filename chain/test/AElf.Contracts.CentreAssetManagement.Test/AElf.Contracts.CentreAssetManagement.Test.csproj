@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>AElf.Contracts.HelloWorldContract</RootNamespace>
+    <RootNamespace>AElf.Contracts.CentreAssetManagementState</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -23,13 +23,13 @@
     <ContractStub Include="..\..\protobuf\acs0.proto">
       <Link>Protobuf\Proto\acs0.proto</Link>
     </ContractStub>
-    <ContractStub Include="..\..\protobuf\hello_world_contract.proto">
-      <Link>Protobuf\Proto\hello_world_contract.proto</Link>
+    <ContractStub Include="..\..\protobuf\centre_asset_management.proto">
+      <Link>Protobuf\Proto\centre_asset_management.proto</Link>
     </ContractStub>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\contract\AElf.Contracts.HelloWorldContract\AElf.Contracts.HelloWorldContract.csproj" />
+    <ProjectReference Include="..\..\contract\AElf.Contracts.CentreAssetManagement\AElf.Contracts.CentreAssetManagement.csproj" />
   </ItemGroup>
 
 </Project>

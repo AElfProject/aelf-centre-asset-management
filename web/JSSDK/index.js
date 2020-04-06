@@ -18,20 +18,20 @@ if(!aelf.isConnected()) {
 }
 
 /** use async mode with promise, all chain methods and contract methods are default to be async **/
-const helloWorldContractName = 'AElf.ContractNames.HelloWorldContract';
-let helloWorldContract = null;
+const CentreAssetManagementContractName = 'AElf.ContractNames.CentreAssetManagementContract';
+let CentreAssetManagementContract = null;
 aelf.chain.getChainStatus().then(({ GenesisContractAddress }) => {
     return aelf.chain.contractAt(GenesisContractAddress, wallet);
 }).then(zeroC => {
-    return zeroC.GetContractAddressByName.call(sha256(helloWorldContractName));
-}).then(helloWorldContractAddress => {
-    return aelf.chain.contractAt(helloWorldContractAddress, wallet);
-}).then(helloWorldC => {
-    helloWorldContract = helloWorldC;
-    return helloWorldC.Hello.call();
+    return zeroC.GetContractAddressByName.call(sha256(CentreAssetManagementContractName));
+}).then(CentreAssetManagementContractAddress => {
+    return aelf.chain.contractAt(CentreAssetManagementContractAddress, wallet);
+}).then(CentreAssetManagementC => {
+    CentreAssetManagementContract = CentreAssetManagementC;
+    return CentreAssetManagementC.Hello.call();
 }).then(result => {
     console.log('hello world contract call: ', result);
-    return helloWorldContract.Hello();
+    return CentreAssetManagementContract.Hello();
 }).then(result => {
     return aelf.chain.getTxResult(result.TransactionId);
 }).then(result => {
@@ -45,23 +45,23 @@ const {
     GenesisContractAddress
 } = aelf.chain.getChainStatus({sync: true});
 const zeroC = aelf.chain.contractAt(GenesisContractAddress, wallet, {sync: true});
-const helloWorldContractAddress = zeroC.GetContractAddressByName.call(sha256(helloWorldContractName), {
+const CentreAssetManagementContractAddress = zeroC.GetContractAddressByName.call(sha256(CentreAssetManagementContractName), {
     sync: true
 });
 
-const helloWorldC = aelf.chain.contractAt(helloWorldContractAddress, wallet, {
+const CentreAssetManagementC = aelf.chain.contractAt(CentreAssetManagementContractAddress, wallet, {
     sync: true
 });
 
 // 1.Good Way; async
 // use `call` to get information is always a good way.
-let result = helloWorldC.Hello.call({
+let result = CentreAssetManagementC.Hello.call({
     sync: true
 });
 // { Value: 'Hello world!' };
 
 // 2.Bay Way; sync
-result = helloWorldC.Hello({sync: true});
+result = CentreAssetManagementC.Hello({sync: true});
 console.log('call: ', result);
 // return demo:
 // {
