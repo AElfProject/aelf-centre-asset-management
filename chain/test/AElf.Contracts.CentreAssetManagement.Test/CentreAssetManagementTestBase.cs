@@ -59,7 +59,7 @@ namespace AElf.Contracts.CentreAssetManagement
             
             AsyncHelper.RunSync(async () =>
             {
-                await CentreAssetManagementStub.Initialize.SendWithExceptionAsync(
+                await CentreAssetManagementStub.Initialize.SendAsync(
                     new InitializeDto()
                     {
                         Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
@@ -83,7 +83,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 );
                 
                 
-                await CentreAssetManagementStub.Initialize.SendWithExceptionAsync(
+                await CentreAssetManagementStub.Initialize.SendAsync(
                     new InitializeDto()
                     {
                         Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
