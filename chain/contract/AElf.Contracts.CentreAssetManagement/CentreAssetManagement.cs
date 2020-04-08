@@ -64,7 +64,10 @@ namespace AElf.Contracts.CentreAssetManagement
                     contractCallWhiteLists.Value);
             }
 
-            State.CentreAssetManagementInfo.Value.Owner = input.Owner;
+            State.CentreAssetManagementInfo.Value =new CentreAssetManagementInfo()
+            {
+                Owner = input.Owner
+            };
 
             State.Initialized.Value = true;
             

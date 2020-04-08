@@ -83,28 +83,6 @@ namespace AElf.Contracts.CentreAssetManagement
                 );
                 
                 
-                await CentreAssetManagementStub.Initialize.SendAsync(
-                    new InitializeDto()
-                    {
-                        Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
-                        CategoryToContactCallWhiteListsMap =
-                        {
-                            {
-                                "token_lock", new ContractCallWhiteLists()
-                                {
-                                    List =
-                                    {
-                                        new ContractCallWhiteList()
-                                        {
-                                            Address = TokenContractAddress,
-                                            MethodNames = {"Lock", "Unlock"}
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                ); 
             });
         }
 
