@@ -23,8 +23,14 @@
     <ContractStub Include="..\..\protobuf\acs0.proto">
       <Link>Protobuf\Proto\acs0.proto</Link>
     </ContractStub>
+    <ContractStub Include="..\..\protobuf\acs1.proto">
+      <Link>Protobuf\Proto\acs1.proto</Link>
+    </ContractStub>
     <ContractStub Include="..\..\protobuf\centre_asset_management.proto">
       <Link>Protobuf\Proto\centre_asset_management.proto</Link>
+    </ContractStub>
+    <ContractStub Include="..\..\protobuf\token_contract.proto">
+      <Link>Protobuf\Proto\token_contract.proto</Link>
     </ContractStub>
   </ItemGroup>
 
@@ -32,4 +38,8 @@
     <ProjectReference Include="..\..\contract\AElf.Contracts.CentreAssetManagement\AElf.Contracts.CentreAssetManagement.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AElf.Contracts.MultiToken" Version="1.0.0-preview1" />
+  </ItemGroup>
+  
 </Project>
