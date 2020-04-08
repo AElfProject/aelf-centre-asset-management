@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using AElf.Contracts.MultiToken;
 using AElf.Types;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -17,6 +18,13 @@ namespace AElf.Contracts.CentreAssetManagement
             var text = new HelloReturn();
             text.MergeFrom(txResult.TransactionResult.ReturnValue);
             text.Value.ShouldBe("Hello World!");
+            var result = await TokenContractStub.Transfer.SendAsync(new TransferInput
+            {
+                Symbol = "ELF",
+                Amount = 100,
+                To = ContractZeroAddress
+            });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
         }
 
         [Fact]

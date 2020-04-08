@@ -70,7 +70,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private TokenContractContainer.TokenContractStub GetTokenContractStub(ECKeyPair keyPair)
         {
-            return GetTester<TokenContractContainer.TokenContractStub>(CentreAssetManagementAddress, keyPair);
+            return GetTester<TokenContractContainer.TokenContractStub>(TokenContractAddress, keyPair);
         }
 
         private SystemContractDeploymentInput.Types.SystemTransactionMethodCallList
