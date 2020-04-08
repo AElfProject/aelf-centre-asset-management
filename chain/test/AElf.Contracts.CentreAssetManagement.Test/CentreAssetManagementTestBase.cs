@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Acs0;
@@ -55,6 +56,56 @@ namespace AElf.Contracts.CentreAssetManagement
                         TransactionMethodCallList = GetTokenContractInitialMethodCallList()
                     })).Output;
             TokenContractStub = GetTokenContractStub(DefaultKeyPair);
+            
+            AsyncHelper.RunSync(async () =>
+            {
+                await CentreAssetManagementStub.Initialize.SendWithExceptionAsync(
+                    new InitializeDto()
+                    {
+                        Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        CategoryToContactCallWhiteListsMap =
+                        {
+                            {
+                                "token_lock", new ContractCallWhiteLists()
+                                {
+                                    List =
+                                    {
+                                        new ContractCallWhiteList()
+                                        {
+                                            Address = TokenContractAddress,
+                                            MethodNames = {"Lock", "Unlock"}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+                
+                
+                await CentreAssetManagementStub.Initialize.SendWithExceptionAsync(
+                    new InitializeDto()
+                    {
+                        Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        CategoryToContactCallWhiteListsMap =
+                        {
+                            {
+                                "token_lock", new ContractCallWhiteLists()
+                                {
+                                    List =
+                                    {
+                                        new ContractCallWhiteList()
+                                        {
+                                            Address = TokenContractAddress,
+                                            MethodNames = {"Lock", "Unlock"}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ); 
+            });
         }
 
         private ACS0Container.ACS0Stub GetZeroContractStub(ECKeyPair keyPair)

@@ -130,4 +130,5 @@ message InitializeDto{
     //key is category
     //(vote, {})
     map<string,ContractCallWhiteLists> category_to_contact_call_white_lists_map = 1;
+    aelf.Address owner = 2;
 }

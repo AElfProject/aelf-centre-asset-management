@@ -54,14 +54,20 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             Assert(!State.Initialized.Value, "already initialized.");
 
+
+            State.TokenContract.Value =
+                Context.GetContractAddressByName(SmartContractConstants.TokenContractSystemName);
+
             foreach (var contractCallWhiteLists in input.CategoryToContactCallWhiteListsMap)
             {
                 State.CategoryToContractCallWhiteListsMap.Set(Hash.FromString(contractCallWhiteLists.Key),
                     contractCallWhiteLists.Value);
             }
 
-            State.CentreAssetManagementInfo.Value.Owner = Context.Sender; // TODO: set the owner to something else.
+            State.CentreAssetManagementInfo.Value.Owner = input.Owner;
 
+            State.Initialized.Value = true;
+            
             return new Empty();
         }
 
