@@ -25,13 +25,12 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override HolderCreateReturnDto CreateHolder(HolderCreateDto input)
         {
-            var result = new HolderCreateReturnDto();
 
             HolderInfo holderInfo = new HolderInfo();
 
             var holderId = Context.TransactionId.Xor(Hash.FromString(input.Name));
 
-            Assert(State.HashToHolderInfoMap[holderId].MainAddress.Value.IsEmpty, "already have a holder");
+            Assert(State.HashToHolderInfoMap[holderId] == null, "already have a holder");
 
             holderInfo.MainAddress = GetMainAddress(holderId);
             foreach (var managementAddress in input.ManagementAddresses)
@@ -46,6 +45,13 @@ namespace AElf.Contracts.CentreAssetManagement
             holderInfo.MainAddress = GetMainAddress(holderId);
 
             State.HashToHolderInfoMap[holderId] = holderInfo;
+
+            var result = new HolderCreateReturnDto()
+            {
+                Id = holderId,
+                Info = holderInfo
+            };
+
 
             return result;
         }
@@ -64,13 +70,13 @@ namespace AElf.Contracts.CentreAssetManagement
                     contractCallWhiteLists.Value);
             }
 
-            State.CentreAssetManagementInfo.Value =new CentreAssetManagementInfo()
+            State.CentreAssetManagementInfo.Value = new CentreAssetManagementInfo()
             {
                 Owner = input.Owner
             };
 
             State.Initialized.Value = true;
-            
+
             return new Empty();
         }
 
@@ -87,8 +93,8 @@ namespace AElf.Contracts.CentreAssetManagement
                 Amount = input.Amount,
                 Symbol = input.Symbol
             };
-
-            State.TokenContract.Transfer.Send(tokenInput);
+            
+            Context.SendVirtualInline(virtualUserAddress,State.TokenContract.Value,nameof(State.TokenContract.Transfer),tokenInput);
 
             result.Success = true;
 
@@ -105,7 +111,7 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var virtualUserAddress = Hash.FromString(input.UserToken);
 
-            if (!input.AddressCategoryHash.Value.IsNullOrEmpty())
+            if (input.AddressCategoryHash?.Value != null)
             {
                 var map = State.CategoryToContractCallWhiteListsMap[input.AddressCategoryHash];
                 Assert(map.List.Count > 0, "this category have no contract call list, maybe not initialized.");

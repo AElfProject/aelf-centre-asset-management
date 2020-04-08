@@ -30,12 +30,37 @@ namespace AElf.Contracts.CentreAssetManagement
         [Fact]
         public async Task MainTest()
         {
-            AssetMoveDto assetMoveDto = new AssetMoveDto()
+            AssetMoveDto assetMoveDto1 = new AssetMoveDto()
             {
-                Amount = 1,
+                Amount = 10_00000000,
                 Symbol = "ELF",
                 UserToken = "UserToken1",
+                HolderId = HolderId
             };
+
+            var userExchangeDepositAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveDto1);
+
+            await TokenContractStub.Transfer.SendAsync(new TransferInput()
+            {
+                Amount = 10_00000000,
+                Symbol = "ELF",
+                To = userExchangeDepositAddress1
+            });
+
+            var userDepositAddressBalance1 = await TokenContractStub.GetBalance.CallAsync(new GetBalanceInput()
+            {
+                Owner = userExchangeDepositAddress1,
+                Symbol = "ELF"
+            });
+            
+            Assert.Equal(10_00000000, userDepositAddressBalance1.Balance);
+
+
+            //move elf token to main address
+            var moveFromUserExchangeDepositAddress1ToMainAddressResult = await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(assetMoveDto1);
+
+            Assert.True(moveFromUserExchangeDepositAddress1ToMainAddressResult.Output.Success);
+
         }
     }
 }

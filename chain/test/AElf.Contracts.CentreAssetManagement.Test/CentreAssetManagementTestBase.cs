@@ -6,6 +6,7 @@ using AElf.Blockchains.BasicBaseChain.ContractNames;
 using AElf.Contracts.MultiToken;
 using AElf.Contracts.TestKit;
 using AElf.Cryptography.ECDSA;
+using AElf.CSharp.Core;
 using AElf.Kernel;
 using AElf.Kernel.Token;
 using AElf.Types;
@@ -24,6 +25,8 @@ namespace AElf.Contracts.CentreAssetManagement
         private Address TokenContractAddress { get; set; }
 
         private ECKeyPair DefaultKeyPair { get; set; } = SampleECKeyPairs.KeyPairs.First();
+        
+        protected Hash HolderId { get; private set; }
 
         protected CentreAssetManagementTestBase()
         {
@@ -56,7 +59,7 @@ namespace AElf.Contracts.CentreAssetManagement
                         TransactionMethodCallList = GetTokenContractInitialMethodCallList()
                     })).Output;
             TokenContractStub = GetTokenContractStub(DefaultKeyPair);
-            
+
             AsyncHelper.RunSync(async () =>
             {
                 await CentreAssetManagementStub.Initialize.SendAsync(
@@ -81,8 +84,33 @@ namespace AElf.Contracts.CentreAssetManagement
                         }
                     }
                 );
-                
-                
+
+                var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendAsync(new HolderCreateDto()
+                {
+                    Name = "Huobi",
+                    ManagementAddresses =
+                    {
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[0].PublicKey),
+                            Amount = long.MaxValue,
+                            ManagementAddressesLimitAmount = 0,
+                            ManagementAddressesInTotal = 3
+                        },
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[1].PublicKey),
+                            Amount = 1000_00000000,
+                        },
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[2].PublicKey),
+                            Amount = 1000_000_00000000,
+                        },
+                    }
+                });
+
+                HolderId = createHolderResult.Output.Id;
             });
         }
 
