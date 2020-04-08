@@ -82,7 +82,7 @@ namespace AElf.Contracts.CentreAssetManagement
                         MethodName = nameof(TokenContractStub.Create),
                         Params = new CreateInput
                         {
-                            // Issue
+                            // Issuer assigned to zero contract in order to issue token after deployment.
                             Issuer = ContractZeroAddress
                         }.ToByteString()
                     },
