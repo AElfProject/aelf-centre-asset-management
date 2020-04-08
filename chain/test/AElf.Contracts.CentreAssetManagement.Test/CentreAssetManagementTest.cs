@@ -22,7 +22,7 @@ namespace AElf.Contracts.CentreAssetManagement
         [Fact]
         public async Task MainTest()
         {
-            AssetMoveDto assetMoveDto=new AssetMoveDto()
+            AssetMoveDto assetMoveDto = new AssetMoveDto()
             {
                 Amount = 1,
                 Symbol = "ELF",

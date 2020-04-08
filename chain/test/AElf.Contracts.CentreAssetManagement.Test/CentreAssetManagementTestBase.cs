@@ -22,6 +22,8 @@ namespace AElf.Contracts.CentreAssetManagement
         private Address CentreAssetManagementAddress { get; set; }
         private Address TokenContractAddress { get; set; }
 
+        private ECKeyPair DefaultKeyPair { get; set; } = SampleECKeyPairs.KeyPairs.First();
+
         protected CentreAssetManagementTestBase()
         {
             InitializeContracts();
@@ -29,7 +31,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private void InitializeContracts()
         {
-            ZeroContractStub = GetZeroContractStub(SampleECKeyPairs.KeyPairs.First());
+            ZeroContractStub = GetZeroContractStub(DefaultKeyPair);
 
             CentreAssetManagementAddress = AsyncHelper.RunSync(() =>
                 ZeroContractStub.DeploySystemSmartContract.SendAsync(
@@ -41,8 +43,8 @@ namespace AElf.Contracts.CentreAssetManagement
                         TransactionMethodCallList =
                             new SystemContractDeploymentInput.Types.SystemTransactionMethodCallList()
                     })).Output;
-            CentreAssetManagementStub = GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs.First());
-            
+            CentreAssetManagementStub = GetCentreAssetManagementStub(DefaultKeyPair);
+
             TokenContractAddress = AsyncHelper.RunSync(() =>
                 ZeroContractStub.DeploySystemSmartContract.SendAsync(
                     new SystemContractDeploymentInput
@@ -52,7 +54,7 @@ namespace AElf.Contracts.CentreAssetManagement
                         Name = TokenSmartContractAddressNameProvider.Name,
                         TransactionMethodCallList = GetTokenContractInitialMethodCallList()
                     })).Output;
-            TokenContractStub = GetTokenContractStub(SampleECKeyPairs.KeyPairs.First());
+            TokenContractStub = GetTokenContractStub(DefaultKeyPair);
         }
 
         private ACS0Container.ACS0Stub GetZeroContractStub(ECKeyPair keyPair)
@@ -62,9 +64,10 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private CentreAssetManagementContainer.CentreAssetManagementStub GetCentreAssetManagementStub(ECKeyPair keyPair)
         {
-            return GetTester<CentreAssetManagementContainer.CentreAssetManagementStub>(CentreAssetManagementAddress, keyPair);
+            return GetTester<CentreAssetManagementContainer.CentreAssetManagementStub>(CentreAssetManagementAddress,
+                keyPair);
         }
-        
+
         private TokenContractContainer.TokenContractStub GetTokenContractStub(ECKeyPair keyPair)
         {
             return GetTester<TokenContractContainer.TokenContractStub>(CentreAssetManagementAddress, keyPair);
@@ -83,7 +86,13 @@ namespace AElf.Contracts.CentreAssetManagement
                         Params = new CreateInput
                         {
                             // Issuer assigned to zero contract in order to issue token after deployment.
-                            Issuer = ContractZeroAddress
+                            Issuer = ContractZeroAddress,
+                            Symbol = "ELF",
+                            IsBurnable = true,
+                            Decimals = 8,
+                            IsProfitable = true,
+                            TokenName = "Elf token.",
+                            TotalSupply = 10_0000_0000_00000000
                         }.ToByteString()
                     },
                     new SystemContractDeploymentInput.Types.SystemTransactionMethodCall
@@ -91,7 +100,9 @@ namespace AElf.Contracts.CentreAssetManagement
                         MethodName = nameof(TokenContractStub.Issue),
                         Params = new IssueInput
                         {
-                            
+                            Symbol = "ELF",
+                            Amount = 10_0000_0000_00000000,
+                            To = Address.FromPublicKey(DefaultKeyPair.PublicKey)
                         }.ToByteString()
                     }
                 }
