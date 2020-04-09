@@ -80,14 +80,11 @@ namespace AElf.Contracts.CentreAssetManagement
             Assert.True(moveFromMainToVirtualTokenLockResult.Output.Success);
 
 
-            
-
-
             var userVoteAddress1 =
                 await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveFromMainToVirtualTokenLockDto1);
 
             await CheckBalanceAsync(userVoteAddress1, 5_00000000);
-            
+
             {
                 await CentreAssetManagementStub.SendTransactionByUserVirtualAddress.SendAsync(
                     new SendTransactionByUserVirtualAddressDto()
@@ -105,9 +102,8 @@ namespace AElf.Contracts.CentreAssetManagement
                         AddressCategoryHash = Hash.FromString("token_lock"),
                     });
             }
-            
-            await CheckBalanceAsync(userVoteAddress1, 4_00000000);
 
+            await CheckBalanceAsync(userVoteAddress1, 4_00000000);
 
 
             var withdrawAddress1 = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[4].PublicKey);
@@ -160,6 +156,43 @@ namespace AElf.Contracts.CentreAssetManagement
             });
 
             Assert.Equal(expect, useVoteAddressBalance1.Balance);
+        }
+
+
+        public Address GetAddress(int index)
+        {
+            return Address.FromPublicKey(SampleECKeyPairs.KeyPairs[index].PublicKey);
+        }
+
+        [Fact]
+        public async Task HackAttackAndShutdown()
+        {
+            var addressOwner = GetAddress(1);
+            var shutdownAddress = GetAddress(2);
+
+            var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendAsync(new HolderCreateDto()
+            {
+                Symbol = "ELF",
+                OwnerAddress = addressOwner,
+                SettingsEffectiveTime = 5,
+                ShutdowAddress = shutdownAddress,
+            });
+
+            var holderId = createHolderResult.Output.Id;
+
+            //use OwnerAddress to shutdown
+            await GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[1]).ShutdownHolder
+                .SendAsync(new HolderShutdownDto() {HolderId = holderId});
+
+            await CentreAssetManagementStub.RebootHolder.SendAsync(new HolderRebootDto()
+                {HolderOwner = addressOwner, HolderId = holderId});
+            
+            //use ShutdownAddress to shutdown
+            await GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[2]).ShutdownHolder
+                .SendAsync(new HolderShutdownDto() {HolderId = holderId});
+
+            await CentreAssetManagementStub.RebootHolder.SendAsync(new HolderRebootDto()
+                {HolderOwner = addressOwner, HolderId = holderId});
         }
     }
 }

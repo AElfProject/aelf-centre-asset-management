@@ -45,6 +45,8 @@ namespace AElf.Contracts.CentreAssetManagement
             }
 
             holderInfo.OwnerAddress = input.OwnerAddress;
+            holderInfo.ShutdownAddress = input.ShutdowAddress;
+            holderInfo.SettingsEffectiveTime = input.SettingsEffectiveTime;
 
             var tokenInfo = State.TokenContract.GetTokenInfo.Call(new GetTokenInfoInput() {Symbol = input.Symbol});
 
