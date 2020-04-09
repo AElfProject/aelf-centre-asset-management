@@ -81,7 +81,7 @@ message ManagementAddress{
 }
 
 message HolderInfo{
-    string name = 1;
+    string symbol = 1;
     aelf.Address owner_address = 2; // the owner can change the settings
     map<string,ManagementAddress> management_addresses = 3; // management address can manage asset
     aelf.Address main_address = 4;
@@ -103,7 +103,7 @@ message CategoryContractCallAllowanceDto{
 
 
 message HolderCreateDto{
-    string name = 1;
+    string symbol = 1;
     aelf.Address owner_address = 2; // the owner can change the settings
     repeated ManagementAddress management_addresses = 3; // management address can manage asset
 }
@@ -114,11 +114,10 @@ message HolderCreateReturnDto{
 }
 
 message AssetMoveDto{
-    string symbol = 1;
+    aelf.Hash holder_id = 1;
     int64 amount = 2;
     string user_token = 3;
     aelf.Hash address_category_hash = 4;
-    aelf.Hash holder_id = 5;
 }
 
 message AssetMoveReturnDto{

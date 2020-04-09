@@ -25,7 +25,7 @@ namespace AElf.Contracts.CentreAssetManagement
         private Address TokenContractAddress { get; set; }
 
         private ECKeyPair DefaultKeyPair { get; set; } = SampleECKeyPairs.KeyPairs.First();
-        
+
         protected Hash HolderId { get; private set; }
 
         protected CentreAssetManagementTestBase()
@@ -87,7 +87,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
                 var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendAsync(new HolderCreateDto()
                 {
-                    Name = "Huobi",
+                    Symbol = "ELF",
                     ManagementAddresses =
                     {
                         new ManagementAddress()

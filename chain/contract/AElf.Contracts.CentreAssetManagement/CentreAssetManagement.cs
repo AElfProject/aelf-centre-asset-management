@@ -1,3 +1,4 @@
+using System;
 using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp;
 using AElf.Types;
@@ -25,14 +26,15 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override HolderCreateReturnDto CreateHolder(HolderCreateDto input)
         {
+            Assert(!string.IsNullOrWhiteSpace(input.Symbol), "symbol cannot be null or white space");
 
             HolderInfo holderInfo = new HolderInfo();
 
-            var holderId = Context.TransactionId.Xor(Hash.FromString(input.Name));
+            var holderId = Hash.FromTwoHashes(Context.TransactionId, Context.PreviousBlockHash);
 
             Assert(State.HashToHolderInfoMap[holderId] == null, "already have a holder");
 
-            holderInfo.MainAddress = GetMainAddress(holderId);
+            holderInfo.MainAddress = Context.ConvertVirtualAddressToContractAddress(holderId);
             foreach (var managementAddress in input.ManagementAddresses)
             {
                 holderInfo.ManagementAddresses[managementAddress.Address.Value.ToBase64()] = managementAddress;
@@ -40,9 +42,12 @@ namespace AElf.Contracts.CentreAssetManagement
 
             holderInfo.OwnerAddress = input.OwnerAddress;
 
-            holderInfo.Name = input.Name;
+            var tokenInfo = State.TokenContract.GetTokenInfo.Call(new GetTokenInfoInput() {Symbol = input.Symbol});
 
-            holderInfo.MainAddress = GetMainAddress(holderId);
+            Assert(tokenInfo.Symbol == input.Symbol, "symbol is not registered in token contract");
+
+            holderInfo.Symbol = input.Symbol;
+
 
             State.HashToHolderInfoMap[holderId] = holderInfo;
 
@@ -80,10 +85,44 @@ namespace AElf.Contracts.CentreAssetManagement
             return new Empty();
         }
 
+
+        private HolderInfo GetHolderInfo(Hash holderId)
+        {
+            var holderInfo = State.HashToHolderInfoMap[holderId];
+            Assert(holderInfo != null, "holder is not initialized");
+
+            return holderInfo;
+        }
+
+
+        private ManagementAddress GetManagementAddressFromHolderInfo(HolderInfo holderInfo)
+        {
+            ManagementAddress managementAddress;
+            Assert(
+                holderInfo.ManagementAddresses.TryGetValue(Context.Sender.Value.ToBase64(), out managementAddress),
+                "sender is not registered as management address in the holder");
+
+            return managementAddress;
+        }
+
+        private void CheckManagementAddressPermission(HolderInfo holderInfo)
+        {
+            GetManagementAddressFromHolderInfo(holderInfo);
+        }
+
+        private void CheckMoveFromMainPermission(HolderInfo holderInfo, long amount)
+        {
+            var managementAddress = GetManagementAddressFromHolderInfo(holderInfo);
+            
+        }
+
         public override AssetMoveReturnDto MoveAssetToMainAddress(AssetMoveDto input)
         {
-            AssetMoveReturnDto result = new AssetMoveReturnDto();
-            var mainAddress = GetMainAddress(input.HolderId);
+            var holderInfo = GetHolderInfo(input.HolderId);
+
+            CheckManagementAddressPermission(holderInfo);
+
+            var mainAddress = Context.ConvertVirtualAddressToContractAddress(input.HolderId);
 
             var virtualUserAddress = GetVirtualUserAddress(input);
 
@@ -91,11 +130,13 @@ namespace AElf.Contracts.CentreAssetManagement
             {
                 To = mainAddress,
                 Amount = input.Amount,
-                Symbol = input.Symbol
+                Symbol = holderInfo.Symbol
             };
-            
-            Context.SendVirtualInline(virtualUserAddress,State.TokenContract.Value,nameof(State.TokenContract.Transfer),tokenInput);
 
+            Context.SendVirtualInline(virtualUserAddress, State.TokenContract.Value,
+                nameof(State.TokenContract.Transfer), tokenInput);
+
+            AssetMoveReturnDto result = new AssetMoveReturnDto();
             result.Success = true;
 
             return result;
@@ -122,9 +163,30 @@ namespace AElf.Contracts.CentreAssetManagement
             return virtualUserAddress;
         }
 
-        private Address GetMainAddress(Hash holderId)
+        public override AssetMoveReturnDto MoveAssetFromMainAddress(AssetMoveDto input)
         {
-            return Context.ConvertVirtualAddressToContractAddress(holderId);
+            var holderInfo = GetHolderInfo(input.HolderId);
+
+            CheckMoveFromMainPermission(holderInfo, input.Amount);
+
+            var virtualUserAddress = GetVirtualUserAddress(input);
+
+            var tokenInput = new TransferInput()
+            {
+                To = Context.ConvertVirtualAddressToContractAddress(virtualUserAddress),
+                Amount = input.Amount,
+                Symbol = holderInfo.Symbol
+            };
+
+            Context.SendVirtualInline(input.HolderId, State.TokenContract.Value,
+                nameof(State.TokenContract.Transfer), tokenInput);
+
+
+            AssetMoveReturnDto result = new AssetMoveReturnDto();
+
+            result.Success = true;
+
+            return result;
         }
     }
 }

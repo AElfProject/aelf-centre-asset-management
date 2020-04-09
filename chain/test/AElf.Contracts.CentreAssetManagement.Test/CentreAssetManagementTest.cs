@@ -30,15 +30,15 @@ namespace AElf.Contracts.CentreAssetManagement
         [Fact]
         public async Task MainTest()
         {
-            AssetMoveDto assetMoveDto1 = new AssetMoveDto()
+            AssetMoveDto assetMoveFromVirtualToMainDto1 = new AssetMoveDto()
             {
                 Amount = 10_00000000,
-                Symbol = "ELF",
                 UserToken = "UserToken1",
                 HolderId = HolderId
             };
 
-            var userExchangeDepositAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveDto1);
+            var userExchangeDepositAddress1 =
+                await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveFromVirtualToMainDto1);
 
             await TokenContractStub.Transfer.SendAsync(new TransferInput()
             {
@@ -52,15 +52,43 @@ namespace AElf.Contracts.CentreAssetManagement
                 Owner = userExchangeDepositAddress1,
                 Symbol = "ELF"
             });
-            
+
             Assert.Equal(10_00000000, userDepositAddressBalance1.Balance);
 
 
             //move elf token to main address
-            var moveFromUserExchangeDepositAddress1ToMainAddressResult = await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(assetMoveDto1);
+            var moveFromUserExchangeDepositAddress1ToMainAddressResult =
+                await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(assetMoveFromVirtualToMainDto1);
 
             Assert.True(moveFromUserExchangeDepositAddress1ToMainAddressResult.Output.Success);
 
+            AssetMoveDto assetMoveFromMainToVirtualTokenLockDto1 = new AssetMoveDto()
+            {
+                Amount = 5_00000000,
+                UserToken = "UserToken1",
+                HolderId = HolderId,
+                AddressCategoryHash = Hash.FromString("token_lock")
+            };
+
+            
+            //move elf token from main address to user1's voting address
+            var moveFromMainToVirtualTokenLockResult =
+                await CentreAssetManagementStub.MoveAssetFromMainAddress.SendAsync(
+                    assetMoveFromMainToVirtualTokenLockDto1);
+            
+            Assert.True(moveFromMainToVirtualTokenLockResult.Output.Success);
+            
+            
+            var userVoteAddress1 =
+                await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveFromMainToVirtualTokenLockDto1);
+            
+            var useVoteAddressBalance1 = await TokenContractStub.GetBalance.CallAsync(new GetBalanceInput()
+            {
+                Owner = userVoteAddress1,
+                Symbol = "ELF"
+            });
+
+            Assert.Equal(5_00000000, useVoteAddressBalance1.Balance);
         }
     }
 }
