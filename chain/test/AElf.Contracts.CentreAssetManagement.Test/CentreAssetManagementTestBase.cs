@@ -22,7 +22,7 @@ namespace AElf.Contracts.CentreAssetManagement
         private ACS0Container.ACS0Stub ZeroContractStub { get; set; }
 
         private Address CentreAssetManagementAddress { get; set; }
-        private Address TokenContractAddress { get; set; }
+        protected Address TokenContractAddress { get; set; }
 
         private ECKeyPair DefaultKeyPair { get; set; } = SampleECKeyPairs.KeyPairs.First();
 
@@ -76,7 +76,7 @@ namespace AElf.Contracts.CentreAssetManagement
                                         new ContractCallWhiteList()
                                         {
                                             Address = TokenContractAddress,
-                                            MethodNames = {"Lock", "Unlock"}
+                                            MethodNames = {"Lock", "Unlock", "Transfer"}
                                         }
                                     }
                                 }
@@ -119,7 +119,8 @@ namespace AElf.Contracts.CentreAssetManagement
             return GetTester<ACS0Container.ACS0Stub>(ContractZeroAddress, keyPair);
         }
 
-        internal CentreAssetManagementContainer.CentreAssetManagementStub GetCentreAssetManagementStub(ECKeyPair keyPair)
+        internal CentreAssetManagementContainer.CentreAssetManagementStub GetCentreAssetManagementStub(
+            ECKeyPair keyPair)
         {
             return GetTester<CentreAssetManagementContainer.CentreAssetManagementStub>(CentreAssetManagementAddress,
                 keyPair);

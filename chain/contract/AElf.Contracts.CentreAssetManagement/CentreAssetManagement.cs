@@ -68,7 +68,6 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             Assert(!State.Initialized.Value, "already initialized.");
 
-
             State.TokenContract.Value =
                 Context.GetContractAddressByName(SmartContractConstants.TokenContractSystemName);
 
@@ -163,17 +162,24 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private Hash GetVirtualUserAddress(AssetMoveDto input)
         {
-            var virtualUserAddress = Hash.FromString(input.UserToken);
-
-            if (input.AddressCategoryHash?.Value != null)
-            {
-                var map = State.CategoryToContractCallWhiteListsMap[input.AddressCategoryHash];
-                Assert(map.List.Count > 0, "this category have no contract call list, maybe not initialized.");
-
-                virtualUserAddress = virtualUserAddress.Xor(input.AddressCategoryHash);
-            }
+            var virtualUserAddress = GetVirtualUserAddress(input.HolderId, input.UserToken, input.AddressCategoryHash);
 
             return virtualUserAddress;
+        }
+
+        private Hash GetVirtualUserAddress(Hash holder, string userToken, Hash category)
+        {
+            var virtualUserAddress = Hash.FromString(userToken);
+
+            if (category?.Value != null)
+            {
+                var map = State.CategoryToContractCallWhiteListsMap[category];
+                Assert(map.List.Count > 0, "this category have no contract call list, maybe not initialized.");
+
+                virtualUserAddress = virtualUserAddress.Xor(category);
+            }
+
+            return Hash.FromTwoHashes(holder, virtualUserAddress);
         }
 
         public override AssetMoveReturnDto MoveAssetFromMainAddress(AssetMoveDto input)
@@ -312,6 +318,29 @@ namespace AElf.Contracts.CentreAssetManagement
                     State.Withdraws.Remove(withdrawId);
                 }
             }
+
+            return new Empty();
+        }
+
+        public override Empty SendTransactionByUserVirtualAddress(SendTransactionByUserVirtualAddressDto input)
+        {
+            var methodCallWithList = State.CategoryToContractCallWhiteListsMap[input.AddressCategoryHash];
+
+            Assert(methodCallWithList != null, "category not exists");
+
+            var callPermission = methodCallWithList.List.Any(
+                p => p.Address == input.To && p.MethodNames.Any(m => m == input.MethodName));
+
+            Assert(callPermission, "cannot invoke this transaction");
+
+            var holderInfo = GetHolderInfo(input.HolderId);
+            CheckManagementAddressPermission(holderInfo);
+
+            var virtualUserAddress = GetVirtualUserAddress(
+                input.HolderId, input.UserToken, input.AddressCategoryHash);
+
+            Context.SendVirtualInline(virtualUserAddress, input.To,
+                input.MethodName, input.Args);
 
             return new Empty();
         }

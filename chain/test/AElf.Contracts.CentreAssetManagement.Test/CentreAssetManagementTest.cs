@@ -80,10 +80,34 @@ namespace AElf.Contracts.CentreAssetManagement
             Assert.True(moveFromMainToVirtualTokenLockResult.Output.Success);
 
 
+            
+
+
             var userVoteAddress1 =
                 await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveFromMainToVirtualTokenLockDto1);
 
             await CheckBalanceAsync(userVoteAddress1, 5_00000000);
+            
+            {
+                await CentreAssetManagementStub.SendTransactionByUserVirtualAddress.SendAsync(
+                    new SendTransactionByUserVirtualAddressDto()
+                    {
+                        Args = new TransferInput()
+                        {
+                            Amount = 1_00000000,
+                            Symbol = "ELF",
+                            To = userExchangeDepositAddress1
+                        }.ToByteString(),
+                        MethodName = "Transfer",
+                        To = TokenContractAddress,
+                        HolderId = HolderId,
+                        UserToken = "UserToken1",
+                        AddressCategoryHash = Hash.FromString("token_lock"),
+                    });
+            }
+            
+            await CheckBalanceAsync(userVoteAddress1, 4_00000000);
+
 
 
             var withdrawAddress1 = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[4].PublicKey);
@@ -123,9 +147,8 @@ namespace AElf.Contracts.CentreAssetManagement
                     Amount = 3_00000000, //must keep the same with original withdraw,
                     Id = withdrawRequest1
                 });
-            
-            await CheckBalanceAsync(withdrawAddress1, 3_00000000);
 
+            await CheckBalanceAsync(withdrawAddress1, 3_00000000);
         }
 
         private async Task CheckBalanceAsync(Address userVoteAddress1, long expect)

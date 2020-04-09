@@ -46,9 +46,9 @@ service CentreAssetManagement {
     rpc ApproveUpdateHolder (HolderUpdateApproveDto) returns (google.protobuf.Empty) {
 
     }
-    
-    rpc RebootHolder (HolderRebootDto) returns (google.protobuf.Empty){
-        
+
+    rpc RebootHolder (HolderRebootDto) returns (google.protobuf.Empty) {
+
     }
 
     rpc MoveAssetToMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
@@ -188,7 +188,7 @@ message HolderUpdateApproveDto {
     aelf.Hash holder_id = 1;
 }
 
-message HolderRebootDto{
+message HolderRebootDto {
     aelf.Address holder_owner = 1;
 }
 
@@ -239,10 +239,12 @@ message WithdrawApproveReturnDto {
 }
 
 message SendTransactionByUserVirtualAddressDto {
-    aelf.Transaction tx = 1;
-    aelf.Hash holder_id = 2;
-    string user_token = 3;
-    aelf.Hash address_category_hash = 4;
+    aelf.Address to = 1;
+    string method_name = 2;
+    bytes args = 3;
+    aelf.Hash holder_id = 4;
+    string user_token = 5;
+    aelf.Hash address_category_hash = 6;
 }
 
 message CancelWithdrawsDto {
