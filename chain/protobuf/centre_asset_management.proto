@@ -43,10 +43,24 @@ service CentreAssetManagement {
     rpc GetCategoryContractCallAllowance(CategoryDto) returns (CategoryContractCallAllowanceDto) { }
     
     rpc Initialize(InitializeDto) returns (google.protobuf.Empty) { }
+
+
+    rpc RequestWithdraw(WithdrawRequestDto) returns(WithdrawRequestReturnDto){
+
+    }
+    
+    rpc ApproveWithdraw(WithdrawApproveDto) returns(WithdrawApproveReturnDto){
+        
+    }
     
     rpc GetVirtualAddress(AssetMoveDto) returns(aelf.Address){
         option (aelf.is_view) = true;
     }
+    
+    rpc SendTransactionByUserVirtualAddress(SendTransactionByUserVirtualAddressDto) returns(google.protobuf.Empty){
+        
+    }
+    
 }
 
 
@@ -130,4 +144,30 @@ message InitializeDto{
     //(vote, {})
     map<string,ContractCallWhiteLists> category_to_contact_call_white_lists_map = 1;
     aelf.Address owner = 2;
+}
+
+message WithdrawRequestDto{
+    aelf.Address address = 1;
+    int64 long = 2;
+}
+message WithdrawRequestReturnDto{
+    aelf.Hash id = 1;
+}
+
+message WithdrawApproveDto{
+    aelf.Hash id = 1;
+    aelf.Address address = 2;
+    int64 long = 3;
+}
+
+message WithdrawApproveReturnDto{
+    int32 total_required = 1;
+    int32 approved = 2;
+}
+
+message SendTransactionByUserVirtualAddressDto{
+    aelf.Transaction tx = 1;
+    aelf.Hash holder_id = 2;
+    string user_token = 3;
+    aelf.Hash address_category_hash = 4;
 }

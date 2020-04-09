@@ -114,6 +114,9 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var managementAddress = GetManagementAddressFromHolderInfo(holderInfo);
             
+            Assert(managementAddress.Amount >= amount,
+                "current management address can not move this asset, more amount required");
+            
         }
 
         public override AssetMoveReturnDto MoveAssetToMainAddress(AssetMoveDto input)
