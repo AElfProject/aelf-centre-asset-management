@@ -40,6 +40,17 @@ service CentreAssetManagement {
     rpc CreateHolder (HolderCreateDto) returns (HolderCreateReturnDto) {
     }
 
+    rpc RequestUpdateHolder (HolderUpdateRequestDto) returns (google.protobuf.Empty) {
+    }
+
+    rpc ApproveUpdateHolder (HolderUpdateApproveDto) returns (google.protobuf.Empty) {
+
+    }
+    
+    rpc RebootHolder (HolderRebootDto) returns (google.protobuf.Empty){
+        
+    }
+
     rpc MoveAssetToMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
     }
 
@@ -117,11 +128,24 @@ message ManagementAddress {
     int64 management_addresses_limit_amount = 4;
 }
 
+message HolderUpdatingInfo {
+    repeated ManagementAddress management_addresses = 1; // management address can manage asset
+    aelf.Address owner_address = 2; // the owner can change the settings
+    int32 settings_effective_time = 3;
+    aelf.Address shutdown_address = 4;
+}
+
 message HolderInfo {
     string symbol = 1;
     aelf.Address owner_address = 2; // the owner can change the settings
     map<string, ManagementAddress> management_addresses = 3; // management address can manage asset
     aelf.Address main_address = 4;
+
+    int32 settings_effective_time = 5;
+    aelf.Address shutdown_address = 6;
+    bool is_shutdown = 7;
+
+    HolderUpdatingInfo updating_info = 8;
 }
 
 // a custom message, used as the return type of the Hello action
@@ -143,11 +167,29 @@ message HolderCreateDto {
     string symbol = 1;
     aelf.Address owner_address = 2; // the owner can change the settings
     repeated ManagementAddress management_addresses = 3; // management address can manage asset
+    int32 settings_effective_time = 4;
+    aelf.Address shutdow_address = 5;
 }
 
 message HolderCreateReturnDto {
     aelf.Hash id = 1;
     HolderInfo info = 2;
+}
+
+message HolderUpdateRequestDto {
+    aelf.Hash holder_id = 1;
+    repeated ManagementAddress management_addresses = 2; // management address can manage asset
+    aelf.Address owner_address = 3; // the owner can change the settings
+    int32 settings_effective_time = 4;
+    aelf.Address shutdown_address = 5;
+}
+
+message HolderUpdateApproveDto {
+    aelf.Hash holder_id = 1;
+}
+
+message HolderRebootDto{
+    aelf.Address holder_owner = 1;
 }
 
 message AssetMoveDto {
