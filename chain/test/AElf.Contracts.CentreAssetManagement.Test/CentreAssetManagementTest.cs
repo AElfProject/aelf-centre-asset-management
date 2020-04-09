@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
+using AElf.Contracts.TestKit;
 using AElf.Types;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -30,6 +31,12 @@ namespace AElf.Contracts.CentreAssetManagement
         [Fact]
         public async Task MainTest()
         {
+            //origin address
+            //deposit address (exchange virtual user address)
+            //vote address (exchange virtual user address)
+            //main address (exchange virtual main address)
+
+
             AssetMoveDto assetMoveFromVirtualToMainDto1 = new AssetMoveDto()
             {
                 Amount = 10_00000000,
@@ -47,13 +54,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 To = userExchangeDepositAddress1
             });
 
-            var userDepositAddressBalance1 = await TokenContractStub.GetBalance.CallAsync(new GetBalanceInput()
-            {
-                Owner = userExchangeDepositAddress1,
-                Symbol = "ELF"
-            });
-
-            Assert.Equal(10_00000000, userDepositAddressBalance1.Balance);
+            await CheckBalanceAsync(userExchangeDepositAddress1, 10_00000000);
 
 
             //move elf token to main address
@@ -70,25 +71,72 @@ namespace AElf.Contracts.CentreAssetManagement
                 AddressCategoryHash = Hash.FromString("token_lock")
             };
 
-            
+
             //move elf token from main address to user1's voting address
             var moveFromMainToVirtualTokenLockResult =
                 await CentreAssetManagementStub.MoveAssetFromMainAddress.SendAsync(
                     assetMoveFromMainToVirtualTokenLockDto1);
-            
+
             Assert.True(moveFromMainToVirtualTokenLockResult.Output.Success);
-            
-            
+
+
             var userVoteAddress1 =
                 await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveFromMainToVirtualTokenLockDto1);
+
+            await CheckBalanceAsync(userVoteAddress1, 5_00000000);
+
+
+            var withdrawAddress1 = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[4].PublicKey);
+
+            //withdraw to user1 origin address
+            var requestWithdrawToOriginAddress1Result = await CentreAssetManagementStub.RequestWithdraw.SendAsync(
+                new WithdrawRequestDto()
+                {
+                    Address = withdrawAddress1,
+                    Amount = 3_00000000,
+                    HolderId = HolderId
+                });
+
+            var withdrawRequest1 = requestWithdrawToOriginAddress1Result.Output.Id;
+
+            Assert.True(withdrawRequest1 != null);
+
+            var centreAssetManagementStub2 = GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[1]);
+
+            var manageAddress2ApproveWithdraw = await centreAssetManagementStub2.ApproveWithdraw.SendWithExceptionAsync(
+                new WithdrawApproveDto()
+                {
+                    Address = withdrawAddress1, //must keep the same with original withdraw
+                    Amount = 3_00000000, //must keep the same with original withdraw,
+                    Id = withdrawRequest1
+                });
+
+            manageAddress2ApproveWithdraw.TransactionResult.Error.Contains(
+                "current management address cannot approve, amount limited");
+
+            var centreAssetManagementStub3 = GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[2]);
+
+            var manageAddress3ApproveWithdraw = await centreAssetManagementStub3.ApproveWithdraw.SendAsync(
+                new WithdrawApproveDto()
+                {
+                    Address = withdrawAddress1, //must keep the same with original withdraw
+                    Amount = 3_00000000, //must keep the same with original withdraw,
+                    Id = withdrawRequest1
+                });
             
+            await CheckBalanceAsync(withdrawAddress1, 3_00000000);
+
+        }
+
+        private async Task CheckBalanceAsync(Address userVoteAddress1, long expect)
+        {
             var useVoteAddressBalance1 = await TokenContractStub.GetBalance.CallAsync(new GetBalanceInput()
             {
                 Owner = userVoteAddress1,
                 Symbol = "ELF"
             });
 
-            Assert.Equal(5_00000000, useVoteAddressBalance1.Balance);
+            Assert.Equal(expect, useVoteAddressBalance1.Balance);
         }
     }
 }

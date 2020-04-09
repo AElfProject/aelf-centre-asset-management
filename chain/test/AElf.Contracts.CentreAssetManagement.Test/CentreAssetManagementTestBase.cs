@@ -94,8 +94,8 @@ namespace AElf.Contracts.CentreAssetManagement
                         {
                             Address = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[0].PublicKey),
                             Amount = long.MaxValue,
-                            ManagementAddressesLimitAmount = 0,
-                            ManagementAddressesInTotal = 3
+                            ManagementAddressesLimitAmount = 1000_000_00000000,
+                            ManagementAddressesInTotal = 2
                         },
                         new ManagementAddress()
                         {
@@ -119,7 +119,7 @@ namespace AElf.Contracts.CentreAssetManagement
             return GetTester<ACS0Container.ACS0Stub>(ContractZeroAddress, keyPair);
         }
 
-        private CentreAssetManagementContainer.CentreAssetManagementStub GetCentreAssetManagementStub(ECKeyPair keyPair)
+        internal CentreAssetManagementContainer.CentreAssetManagementStub GetCentreAssetManagementStub(ECKeyPair keyPair)
         {
             return GetTester<CentreAssetManagementContainer.CentreAssetManagementStub>(CentreAssetManagementAddress,
                 keyPair);

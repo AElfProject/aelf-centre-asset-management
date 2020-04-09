@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp;
 using AElf.Types;
@@ -13,6 +14,8 @@ namespace AElf.Contracts.CentreAssetManagement
     /// </summary>
     public class CentreAssetManagement : CentreAssetManagementContainer.CentreAssetManagementBase
     {
+        private const long WITHDRAW_EXPIRED_SECONDS = 86400;
+
         /// <summary>
         /// The implementation of the Hello method. It takes no parameters and returns on of the custom data types
         /// defined in the protobuf definition file.
@@ -88,6 +91,8 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private HolderInfo GetHolderInfo(Hash holderId)
         {
+            Assert(holderId?.Value.IsEmpty == false, "holder id required");
+
             var holderInfo = State.HashToHolderInfoMap[holderId];
             Assert(holderInfo != null, "holder is not initialized");
 
@@ -110,13 +115,18 @@ namespace AElf.Contracts.CentreAssetManagement
             GetManagementAddressFromHolderInfo(holderInfo);
         }
 
-        private void CheckMoveFromMainPermission(HolderInfo holderInfo, long amount)
+        private ManagementAddress CheckMoveFromMainPermission(HolderInfo holderInfo, long amount)
         {
             var managementAddress = GetManagementAddressFromHolderInfo(holderInfo);
-            
+
             Assert(managementAddress.Amount >= amount,
                 "current management address can not move this asset, more amount required");
-            
+
+            return managementAddress;
+        }
+
+        private void CheckWithdrawPermission(HolderInfo holderInfo, long amount)
+        {
         }
 
         public override AssetMoveReturnDto MoveAssetToMainAddress(AssetMoveDto input)
@@ -190,6 +200,120 @@ namespace AElf.Contracts.CentreAssetManagement
             result.Success = true;
 
             return result;
+        }
+
+        public override WithdrawRequestReturnDto RequestWithdraw(WithdrawRequestDto input)
+        {
+            Assert(!input.Address.Value.IsEmpty, "address required");
+            Assert(input.Amount > 0, "amount required");
+
+
+            var holderInfo = GetHolderInfo(input.HolderId);
+
+            var managementAddress = CheckMoveFromMainPermission(holderInfo, input.Amount);
+
+            Assert(managementAddress.ManagementAddressesInTotal > 0, "current key cannot make withdraw request");
+
+
+            var withdrawId = Hash.FromTwoHashes(Context.TransactionId, Context.PreviousBlockHash);
+
+
+            Assert(State.Withdraws[withdrawId] == null, "withdraw already exists");
+
+            State.Withdraws[withdrawId] = new WithdrawInfo()
+            {
+                ApprovedAddresses = {managementAddress.Address},
+                TotalRequired = managementAddress.ManagementAddressesInTotal,
+                Address = input.Address,
+                Amount = input.Amount,
+                HolderId = input.HolderId,
+                ManagementAddressesLimitAmount = managementAddress.ManagementAddressesLimitAmount,
+                AddedTime = Context.CurrentBlockTime
+            };
+            WithdrawRequestReturnDto result = new WithdrawRequestReturnDto();
+
+            result.Id = withdrawId;
+
+            return result;
+        }
+
+        public override WithdrawApproveReturnDto ApproveWithdraw(WithdrawApproveDto input)
+        {
+            WithdrawApproveReturnDto.Types.Status status = WithdrawApproveReturnDto.Types.Status.Approving;
+
+            var withdraw = State.Withdraws[input.Id];
+
+            Assert(withdraw != null, "withdraw not exists");
+
+            Assert(withdraw.Amount == input.Amount && withdraw.Address == input.Address, "data not matches");
+
+            var holderInfo = GetHolderInfo(withdraw.HolderId);
+
+            var managementAddress = GetManagementAddressFromHolderInfo(holderInfo);
+
+
+            Assert(managementAddress.Amount >= withdraw.ManagementAddressesLimitAmount,
+                "current management address cannot approve, amount limited");
+
+
+            var duration = Context.CurrentBlockTime - withdraw.AddedTime;
+            if (duration.Seconds >= WITHDRAW_EXPIRED_SECONDS)
+            {
+                status = WithdrawApproveReturnDto.Types.Status.Expired;
+                State.Withdraws.Remove(input.Id);
+                return new WithdrawApproveReturnDto()
+                {
+                    ApprovedAddresses = withdraw.ApprovedAddresses.Count,
+                    TotalRequired = withdraw.TotalRequired,
+                    Status = status
+                };
+            }
+
+
+            if (withdraw.ApprovedAddresses.All(p => p != managementAddress.Address))
+            {
+                withdraw.ApprovedAddresses.Add(managementAddress.Address);
+            }
+
+            if (withdraw.ApprovedAddresses.Count >= withdraw.TotalRequired)
+            {
+                var tokenInput = new TransferInput()
+                {
+                    To = withdraw.Address,
+                    Amount = withdraw.Amount,
+                    Symbol = holderInfo.Symbol
+                };
+                Context.SendVirtualInline(withdraw.HolderId, State.TokenContract.Value,
+                    nameof(State.TokenContract.Transfer), tokenInput);
+
+                State.Withdraws.Remove(input.Id);
+                status = WithdrawApproveReturnDto.Types.Status.Approved;
+            }
+
+            return new WithdrawApproveReturnDto()
+            {
+                ApprovedAddresses = withdraw.ApprovedAddresses.Count,
+                TotalRequired = withdraw.TotalRequired,
+                Status = status
+            };
+        }
+
+        public override Empty CancelWithdraws(CancelWithdrawsDto input)
+        {
+            var holderInfo = GetHolderInfo(input.HolderId);
+            CheckManagementAddressPermission(holderInfo);
+
+            foreach (var withdrawId in input.Ids)
+            {
+                var withdraw = State.Withdraws[withdrawId];
+                if (withdraw != null)
+                {
+                    Assert(input.HolderId == withdraw.HolderId);
+                    State.Withdraws.Remove(withdrawId);
+                }
+            }
+
+            return new Empty();
         }
     }
 }

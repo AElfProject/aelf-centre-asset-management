@@ -24,5 +24,7 @@ namespace AElf.Contracts.CentreAssetManagement
         
         public MappedState<Hash,HolderInfo> HashToHolderInfoMap { get; set; }
         
+        public MappedState<Hash,WithdrawInfo> Withdraws { get; set; }
+        
     }
 }

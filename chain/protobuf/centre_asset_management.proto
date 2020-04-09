@@ -19,6 +19,8 @@ import "aelf/options.proto";
 // import for using the google.protobuf.Empty type.
 import "google/protobuf/empty.proto";
 
+import "google/protobuf/timestamp.proto";
+
 // the name of the C# namespace in which the contract code will be,
 // generated code will also be in this namespace.
 option csharp_namespace = "AElf.Contracts.CentreAssetManagement";
@@ -32,61 +34,82 @@ service CentreAssetManagement {
     // an action defined as a gRPC service method.
     // this action take a google.protobuf.Empty (placeholder for void) as input
     // and returns a custom defined type: HelloReturn.
-    rpc Hello (google.protobuf.Empty) returns (HelloReturn) { }
-    
-    rpc CreateHolder(HolderCreateDto) returns (HolderCreateReturnDto) { }
-    
-    rpc MoveAssetToMainAddress(AssetMoveDto) returns (AssetMoveReturnDto) { }
-    
-    rpc MoveAssetFromMainAddress(AssetMoveDto) returns (AssetMoveReturnDto) { }
-    
-    rpc GetCategoryContractCallAllowance(CategoryDto) returns (CategoryContractCallAllowanceDto) { }
-    
-    rpc Initialize(InitializeDto) returns (google.protobuf.Empty) { }
+    rpc Hello (google.protobuf.Empty) returns (HelloReturn) {
+    }
+
+    rpc CreateHolder (HolderCreateDto) returns (HolderCreateReturnDto) {
+    }
+
+    rpc MoveAssetToMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
+    }
+
+    rpc MoveAssetFromMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
+    }
+
+    rpc GetCategoryContractCallAllowance (CategoryDto) returns (CategoryContractCallAllowanceDto) {
+    }
+
+    rpc Initialize (InitializeDto) returns (google.protobuf.Empty) {
+    }
 
 
-    rpc RequestWithdraw(WithdrawRequestDto) returns(WithdrawRequestReturnDto){
+    rpc RequestWithdraw (WithdrawRequestDto) returns (WithdrawRequestReturnDto) {
 
     }
-    
-    rpc ApproveWithdraw(WithdrawApproveDto) returns(WithdrawApproveReturnDto){
-        
+
+    rpc ApproveWithdraw (WithdrawApproveDto) returns (WithdrawApproveReturnDto) {
+
     }
-    
-    rpc GetVirtualAddress(AssetMoveDto) returns(aelf.Address){
+
+    rpc CancelWithdraws (CancelWithdrawsDto) returns (google.protobuf.Empty) {
+
+    }
+
+    rpc GetVirtualAddress (AssetMoveDto) returns (aelf.Address) {
         option (aelf.is_view) = true;
     }
-    
-    rpc SendTransactionByUserVirtualAddress(SendTransactionByUserVirtualAddressDto) returns(google.protobuf.Empty){
-        
+
+    rpc SendTransactionByUserVirtualAddress (SendTransactionByUserVirtualAddressDto) returns (google.protobuf.Empty) {
+
     }
-    
+
 }
 
 
-message ContractCallWhiteList{
+message WithdrawInfo {
+    aelf.Address address = 1;
+    int64 amount = 2;
+    aelf.Hash holder_id = 3;
+    int32 total_required = 4;
+    repeated aelf.Address approved_addresses = 5;
+    int64 management_addresses_limit_amount = 6;
+    google.protobuf.Timestamp added_time = 7;
+
+}
+
+message ContractCallWhiteList {
     aelf.Address address = 1;
     repeated string method_names = 2;
 }
 
-message ContractCallWhiteLists{
+message ContractCallWhiteLists {
     repeated ContractCallWhiteList list = 1;
 }
 
-message CentreAssetManagementInfo{
+message CentreAssetManagementInfo {
     //for example, {"vote","address_of_vote_contract_1,address_of_vote_contract_2"}
     //address_of_vote_contract can be ELF_xxx_YYY
     //or address_of_vote_contract can be a system contract name
     //map<string,string> category_contract_white_lists = 1;
-    
-    
+
+
     aelf.Address owner = 1;
 }
 
-message ManagementAddress{
+message ManagementAddress {
     aelf.Address address = 1;
     int64 amount = 2; //how much asset the address can management
-    
+
     int32 management_addresses_in_total = 3; // how many management keys do we need
 
     //if we have key:(a,1000),(b,2000),(c,5000).
@@ -94,10 +117,10 @@ message ManagementAddress{
     int64 management_addresses_limit_amount = 4;
 }
 
-message HolderInfo{
+message HolderInfo {
     string symbol = 1;
     aelf.Address owner_address = 2; // the owner can change the settings
-    map<string,ManagementAddress> management_addresses = 3; // management address can manage asset
+    map<string, ManagementAddress> management_addresses = 3; // management address can manage asset
     aelf.Address main_address = 4;
 }
 
@@ -106,68 +129,81 @@ message HelloReturn {
     string Value = 1;
 }
 
-message CategoryDto{
+message CategoryDto {
     string category = 1;
 }
 
-message CategoryContractCallAllowanceDto{
+message CategoryContractCallAllowanceDto {
     string category = 1;
     repeated ContractCallWhiteList list = 2;
 }
 
 
-message HolderCreateDto{
+message HolderCreateDto {
     string symbol = 1;
     aelf.Address owner_address = 2; // the owner can change the settings
     repeated ManagementAddress management_addresses = 3; // management address can manage asset
 }
 
-message HolderCreateReturnDto{
+message HolderCreateReturnDto {
     aelf.Hash id = 1;
     HolderInfo info = 2;
 }
 
-message AssetMoveDto{
+message AssetMoveDto {
     aelf.Hash holder_id = 1;
     int64 amount = 2;
     string user_token = 3;
     aelf.Hash address_category_hash = 4;
 }
 
-message AssetMoveReturnDto{
+message AssetMoveReturnDto {
     bool success = 1;
 }
 
-message InitializeDto{
-    
+message InitializeDto {
+
     //key is category
     //(vote, {})
-    map<string,ContractCallWhiteLists> category_to_contact_call_white_lists_map = 1;
+    map<string, ContractCallWhiteLists> category_to_contact_call_white_lists_map = 1;
     aelf.Address owner = 2;
 }
 
-message WithdrawRequestDto{
+message WithdrawRequestDto {
     aelf.Address address = 1;
-    int64 long = 2;
+    int64 amount = 2;
+    aelf.Hash holder_id = 3;
 }
-message WithdrawRequestReturnDto{
+message WithdrawRequestReturnDto {
     aelf.Hash id = 1;
 }
 
-message WithdrawApproveDto{
+message WithdrawApproveDto {
     aelf.Hash id = 1;
     aelf.Address address = 2;
-    int64 long = 3;
+    int64 amount = 3;
 }
 
-message WithdrawApproveReturnDto{
+message WithdrawApproveReturnDto {
     int32 total_required = 1;
-    int32 approved = 2;
+    int32 approved_addresses = 2;
+    enum Status {
+        APPROVING = 0;
+        APPROVED = 1;
+        EXPIRED = 2;
+    }
+
+    Status status = 3;
 }
 
-message SendTransactionByUserVirtualAddressDto{
+message SendTransactionByUserVirtualAddressDto {
     aelf.Transaction tx = 1;
     aelf.Hash holder_id = 2;
     string user_token = 3;
     aelf.Hash address_category_hash = 4;
+}
+
+message CancelWithdrawsDto {
+    repeated aelf.Hash ids = 1;
+    aelf.Hash holder_id = 2;
 }
