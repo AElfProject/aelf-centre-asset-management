@@ -47,9 +47,15 @@ service CentreAssetManagement {
 
     }
 
+    //only the owner of the contract, can reboot a holder. usually, the owner of the contract is the whole AELF mainnet
+    //community, so the community need to make clear the belongings.
+    //the owner of the contract should be the org of all produce nodes.
     rpc RebootHolder (HolderRebootDto) returns (google.protobuf.Empty) {
 
     }
+    
+    //the owner of holder, or the shutdown address of holder, can shutdown, but cannot reboot
+    rpc ShutdownHolder (HolderShutdownDto) returns  (google.protobuf.Empty) { }
 
     rpc MoveAssetToMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
     }
@@ -58,6 +64,7 @@ service CentreAssetManagement {
     }
 
     rpc GetCategoryContractCallAllowance (CategoryDto) returns (CategoryContractCallAllowanceDto) {
+        option (aelf.is_view) = true;
     }
 
     rpc Initialize (InitializeDto) returns (google.protobuf.Empty) {
@@ -133,6 +140,7 @@ message HolderUpdatingInfo {
     aelf.Address owner_address = 2; // the owner can change the settings
     int32 settings_effective_time = 3;
     aelf.Address shutdown_address = 4;
+    google.protobuf.Timestamp updated_date = 5;
 }
 
 message HolderInfo {
@@ -190,6 +198,11 @@ message HolderUpdateApproveDto {
 
 message HolderRebootDto {
     aelf.Address holder_owner = 1;
+    aelf.Hash holder_id = 2;
+}
+
+message HolderShutdownDto{
+    aelf.Hash holder_id = 2;
 }
 
 message AssetMoveDto {

@@ -3,6 +3,7 @@ using System.Linq;
 using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp;
 using AElf.Types;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElf.Contracts.CentreAssetManagement
@@ -122,10 +123,6 @@ namespace AElf.Contracts.CentreAssetManagement
                 "current management address can not move this asset, more amount required");
 
             return managementAddress;
-        }
-
-        private void CheckWithdrawPermission(HolderInfo holderInfo, long amount)
-        {
         }
 
         public override AssetMoveReturnDto MoveAssetToMainAddress(AssetMoveDto input)
@@ -343,6 +340,91 @@ namespace AElf.Contracts.CentreAssetManagement
                 input.MethodName, input.Args);
 
             return new Empty();
+        }
+
+        public override Empty RebootHolder(HolderRebootDto input)
+        {
+            Assert(State.CentreAssetManagementInfo.Value?.Owner == Context.Sender, "no permission");
+
+            var holderInfo = GetHolderInfo(input.HolderId);
+
+            holderInfo.IsShutdown = false;
+            holderInfo.ManagementAddresses.Clear();
+            holderInfo.UpdatingInfo = null;
+            holderInfo.OwnerAddress = input.HolderOwner;
+            State.HashToHolderInfoMap[input.HolderId] = holderInfo;
+            return new Empty();
+        }
+
+        public override Empty RequestUpdateHolder(HolderUpdateRequestDto input)
+        {
+            var holderInfo = GetHolderInfo(input.HolderId);
+
+            Assert(holderInfo.OwnerAddress == Context.Sender, "no permission");
+
+            holderInfo.UpdatingInfo = new HolderUpdatingInfo()
+            {
+                ManagementAddresses = {input.ManagementAddresses},
+                OwnerAddress = input.OwnerAddress,
+                ShutdownAddress = input.ShutdownAddress,
+                SettingsEffectiveTime = input.SettingsEffectiveTime,
+                UpdatedDate = Context.CurrentBlockTime
+            };
+            State.HashToHolderInfoMap[input.HolderId] = holderInfo;
+            return new Empty();
+        }
+
+        public override Empty ShutdownHolder(HolderShutdownDto input)
+        {
+            var holderInfo = GetHolderInfo(input.HolderId);
+
+            Assert(holderInfo.ShutdownAddress == Context.Sender || holderInfo.OwnerAddress == Context.Sender,
+                "no permission");
+
+            holderInfo.IsShutdown = true;
+            holderInfo.UpdatingInfo = null;
+            State.HashToHolderInfoMap[input.HolderId] = holderInfo;
+            return new Empty();
+        }
+
+        public override Empty ApproveUpdateHolder(HolderUpdateApproveDto input)
+        {
+            var holderInfo = GetHolderInfo(input.HolderId);
+
+            Assert(holderInfo.OwnerAddress == Context.Sender, "no permission");
+
+            Assert(Context.CurrentBlockTime >= holderInfo.UpdatingInfo.UpdatedDate +
+                new Duration() {Seconds = holderInfo.SettingsEffectiveTime}, "effective time not arrives");
+
+
+            var updateInfo = holderInfo.UpdatingInfo;
+
+            holderInfo.UpdatingInfo = null;
+
+            holderInfo.SettingsEffectiveTime = updateInfo.SettingsEffectiveTime;
+            holderInfo.OwnerAddress = updateInfo.OwnerAddress;
+            holderInfo.ShutdownAddress = updateInfo.ShutdownAddress;
+
+            holderInfo.ManagementAddresses.Clear();
+
+            foreach (var managementAddress in updateInfo.ManagementAddresses)
+            {
+                holderInfo.ManagementAddresses[managementAddress.Address.Value.ToBase64()] = managementAddress;
+            }
+
+            State.HashToHolderInfoMap[input.HolderId] = holderInfo;
+            return new Empty();
+        }
+
+        [View]
+        public override CategoryContractCallAllowanceDto GetCategoryContractCallAllowance(CategoryDto input)
+        {
+            CategoryContractCallAllowanceDto result = new CategoryContractCallAllowanceDto()
+            {
+                Category = input.Category,
+                List = {State.CategoryToContractCallWhiteListsMap[Hash.FromString(input.Category)].List}
+            };
+            return result;
         }
     }
 }
