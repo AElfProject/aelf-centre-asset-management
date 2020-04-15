@@ -186,7 +186,7 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var holderInfo = GetHolderInfo(input.HolderId);
 
-            CheckMoveFromMainPermission(holderInfo, input.Amount);
+            CheckMoveFromMainPermission(holderInfo, input.Amount); //是否可以多次转移
 
             //var virtualUserAddress = GetVirtualUserAddress(input);
 
