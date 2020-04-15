@@ -168,6 +168,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private Hash GetVirtualUserAddress(Hash holder, string userToken, Hash category)
         {
+            Assert(!string.IsNullOrEmpty(userToken));
             var virtualUserAddress = Hash.FromString(userToken);
 
             if (category?.Value != null)
