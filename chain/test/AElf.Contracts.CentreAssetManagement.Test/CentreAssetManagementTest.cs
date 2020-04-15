@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
 using AElf.Contracts.TestKit;
@@ -193,6 +195,85 @@ namespace AElf.Contracts.CentreAssetManagement
 
             await CentreAssetManagementStub.RebootHolder.SendAsync(new HolderRebootDto()
                 {HolderOwner = addressOwner, HolderId = holderId});
+        }
+
+        [Fact]
+        public async Task WithdrawCancel()
+        {
+            var holderInfo = await CentreAssetManagementStub.GetHolderInfo.CallAsync(HolderId);
+            await TokenContractStub.Transfer.SendAsync(new TransferInput
+            {
+                Symbol = "ELF",
+                To = holderInfo.MainAddress,
+                Amount = 1000
+            });
+            var receiveAddress = GetAddress(4);
+            var withdrawResult = await CentreAssetManagementStub.RequestWithdraw.SendAsync(new WithdrawRequestDto
+            {
+                Amount = 10000,
+                Address = receiveAddress,
+                HolderId = HolderId
+            });
+            var withdrawId = withdrawResult.Output.Id;
+            await CentreAssetManagementStub.CancelWithdraws.SendAsync(new CancelWithdrawsDto
+            {
+                HolderId = HolderId,
+                Ids = {withdrawId}
+            });
+            var approveResult = await GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[1]).ApproveWithdraw
+                .SendWithExceptionAsync(new WithdrawApproveDto
+                {
+                    Address = receiveAddress,
+                    Amount = 10000,
+                    Id = withdrawId
+                });
+            approveResult.TransactionResult.Error.Contains("withdraw not exists");
+            
+        }
+
+        [Fact]
+        public async Task UpdateHolderInfo()
+        {
+            var addressOwner = GetAddress(0);
+            var newOwner = GetAddress(4);
+            var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendAsync(new HolderCreateDto()
+            {
+                Symbol = "ELF",
+                OwnerAddress = addressOwner,
+                SettingsEffectiveTime = 1,
+                ShutdowAddress = addressOwner,
+            });
+            var holderId = createHolderResult.Output.Id;
+            var updateInfo = new HolderUpdateRequestDto
+            {
+                HolderId = holderId,
+                OwnerAddress = newOwner,
+                ShutdownAddress = newOwner,
+                ManagementAddresses =
+                {
+                    new ManagementAddress
+                    {
+                        Amount = 1000,
+                        Address = newOwner
+                    }
+                }
+            };
+            await CentreAssetManagementStub.RequestUpdateHolder.SendAsync(updateInfo);
+            var approveInEffectiveTime = await CentreAssetManagementStub.ApproveUpdateHolder.SendWithExceptionAsync(
+                new HolderUpdateApproveDto
+                {
+                    HolderId = holderId
+                });
+            approveInEffectiveTime.TransactionResult.Error.Contains("effective time not arrives");
+            
+            Thread.Sleep(1000);
+            await CentreAssetManagementStub.ApproveUpdateHolder.SendAsync(
+                new HolderUpdateApproveDto
+                {
+                    HolderId = holderId
+                });
+            var updateHolderInfo = await CentreAssetManagementStub.GetHolderInfo.CallAsync(holderId);
+            updateHolderInfo.ManagementAddresses.First().Value.Amount.ShouldBe(1000);
         }
     }
 }

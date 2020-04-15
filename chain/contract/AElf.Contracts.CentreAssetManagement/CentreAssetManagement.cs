@@ -90,8 +90,8 @@ namespace AElf.Contracts.CentreAssetManagement
             return new Empty();
         }
 
-
-        private HolderInfo GetHolderInfo(Hash holderId)
+        [View]
+        public override HolderInfo GetHolderInfo(Hash holderId)
         {
             Assert(holderId?.Value.IsEmpty == false, "holder id required");
 
