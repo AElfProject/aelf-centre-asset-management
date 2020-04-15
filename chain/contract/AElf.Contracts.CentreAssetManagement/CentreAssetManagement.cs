@@ -187,11 +187,11 @@ namespace AElf.Contracts.CentreAssetManagement
 
             CheckMoveFromMainPermission(holderInfo, input.Amount);
 
-            var virtualUserAddress = GetVirtualUserAddress(input);
+            //var virtualUserAddress = GetVirtualUserAddress(input);
 
             var tokenInput = new TransferInput()
             {
-                To = Context.ConvertVirtualAddressToContractAddress(virtualUserAddress),
+                To = GetVirtualAddress(input), //
                 Amount = input.Amount,
                 Symbol = holderInfo.Symbol
             };
@@ -214,10 +214,10 @@ namespace AElf.Contracts.CentreAssetManagement
 
 
             var holderInfo = GetHolderInfo(input.HolderId);
-
+            Assert(input.Amount > 0, "");
             var managementAddress = CheckMoveFromMainPermission(holderInfo, input.Amount);
 
-            Assert(managementAddress.ManagementAddressesInTotal > 0, "current key cannot make withdraw request");
+            //Assert(managementAddress.ManagementAddressesInTotal > 0, "current key cannot make withdraw request");
 
 
             var withdrawId = Hash.FromTwoHashes(Context.TransactionId, Context.PreviousBlockHash);
@@ -420,7 +420,6 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private void AssertHolderInfoActivated(HolderInfo holderInfo)
         {
-            //Assert(Context.CurrentBlockTime >= holderInfo.CreateTIme + holderInfo.SettingsEffectiveTime, "holder is not activated");
             Assert(!holderInfo.IsShutdown, "holder has been shut down");
         }
 
