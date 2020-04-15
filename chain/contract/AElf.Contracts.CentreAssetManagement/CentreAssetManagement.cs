@@ -418,6 +418,12 @@ namespace AElf.Contracts.CentreAssetManagement
             return new Empty();
         }
 
+        private void AssertHolderInfoActivated(HolderInfo holderInfo)
+        {
+            //Assert(Context.CurrentBlockTime >= holderInfo.CreateTIme + holderInfo.SettingsEffectiveTime, "holder is not activated");
+            Assert(!holderInfo.IsShutdown, "holder has been shut down");
+        }
+
         [View]
         public override CategoryContractCallAllowanceDto GetCategoryContractCallAllowance(CategoryDto input)
         {
