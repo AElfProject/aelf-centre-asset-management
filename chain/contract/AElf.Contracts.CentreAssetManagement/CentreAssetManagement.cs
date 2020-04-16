@@ -186,13 +186,10 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var holderInfo = GetHolderInfo(input.HolderId);
 
-            CheckMoveFromMainPermission(holderInfo, input.Amount); //是否可以多次转移
-
-            //var virtualUserAddress = GetVirtualUserAddress(input);
-
+            CheckMoveFromMainPermission(holderInfo, input.Amount); //if a manager transfers asset from main address multiple times
             var tokenInput = new TransferInput()
             {
-                To = GetVirtualAddress(input), //
+                To = GetVirtualAddress(input), 
                 Amount = input.Amount,
                 Symbol = holderInfo.Symbol
             };
