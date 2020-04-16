@@ -1,9 +1,7 @@
-using System;
 using System.Linq;
 using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp;
 using AElf.Types;
-using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElf.Contracts.CentreAssetManagement
@@ -212,12 +210,10 @@ namespace AElf.Contracts.CentreAssetManagement
 
 
             var holderInfo = GetHolderInfo(input.HolderId);
-            Assert(input.Amount > 0, "");
             var managementAddress = CheckMoveFromMainPermission(holderInfo, input.Amount);
 
-            //Assert(managementAddress.ManagementAddressesInTotal > 0, "current key cannot make withdraw request");
-
-
+            Assert(managementAddress.ManagementAddressesInTotal > 0, "current key cannot make withdraw request");
+            
             var withdrawId = Hash.FromTwoHashes(Context.TransactionId, Context.PreviousBlockHash);
 
 
