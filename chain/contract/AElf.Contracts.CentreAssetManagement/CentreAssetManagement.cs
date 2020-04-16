@@ -414,6 +414,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private void AssertHolderInfoActivated(HolderInfo holderInfo)
         {
+            //effective time use
             Assert(!holderInfo.IsShutdown, "holder has been shut down");
         }
 
