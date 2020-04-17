@@ -1,9 +1,7 @@
-using System;
 using System.Linq;
 using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp;
 using AElf.Types;
-using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElf.Contracts.CentreAssetManagement
@@ -90,8 +88,8 @@ namespace AElf.Contracts.CentreAssetManagement
             return new Empty();
         }
 
-
-        private HolderInfo GetHolderInfo(Hash holderId)
+        [View]
+        public override HolderInfo GetHolderInfo(Hash holderId)
         {
             Assert(holderId?.Value.IsEmpty == false, "holder id required");
 
@@ -168,6 +166,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private Hash GetVirtualUserAddress(Hash holder, string userToken, Hash category)
         {
+            Assert(!string.IsNullOrEmpty(userToken));
             var virtualUserAddress = Hash.FromString(userToken);
 
             if (category?.Value != null)
@@ -185,13 +184,10 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var holderInfo = GetHolderInfo(input.HolderId);
 
-            CheckMoveFromMainPermission(holderInfo, input.Amount);
-
-            var virtualUserAddress = GetVirtualUserAddress(input);
-
+            CheckMoveFromMainPermission(holderInfo, input.Amount); //if a manager transfers asset from main address multiple times
             var tokenInput = new TransferInput()
             {
-                To = Context.ConvertVirtualAddressToContractAddress(virtualUserAddress),
+                To = GetVirtualAddress(input), 
                 Amount = input.Amount,
                 Symbol = holderInfo.Symbol
             };
@@ -214,12 +210,10 @@ namespace AElf.Contracts.CentreAssetManagement
 
 
             var holderInfo = GetHolderInfo(input.HolderId);
-
             var managementAddress = CheckMoveFromMainPermission(holderInfo, input.Amount);
 
             Assert(managementAddress.ManagementAddressesInTotal > 0, "current key cannot make withdraw request");
-
-
+            
             var withdrawId = Hash.FromTwoHashes(Context.TransactionId, Context.PreviousBlockHash);
 
 
@@ -416,6 +410,12 @@ namespace AElf.Contracts.CentreAssetManagement
 
             State.HashToHolderInfoMap[input.HolderId] = holderInfo;
             return new Empty();
+        }
+
+        private void AssertHolderInfoActivated(HolderInfo holderInfo)
+        {
+            //effective time use
+            Assert(!holderInfo.IsShutdown, "holder has been shut down");
         }
 
         [View]

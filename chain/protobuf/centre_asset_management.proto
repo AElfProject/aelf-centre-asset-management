@@ -91,6 +91,9 @@ service CentreAssetManagement {
 
     }
 
+    rpc GetHolderInfo (aelf.Hash) returns (HolderInfo) {
+        option (aelf.is_view) = true;
+    }
 }
 
 
