@@ -14,7 +14,7 @@ namespace AElf.Blockchains.MainChain
 
             l.AddGenesisSmartContract(
                 _codes.Single(kv=>kv.Key.Contains("RandomDemo")).Value,
-                Hash.FromString("AElf.ContractNames.RandomDemoContract"), new SystemContractDeploymentInput.Types.SystemTransactionMethodCallList());
+                HashHelper.ComputeFrom("AElf.ContractNames.RandomDemoContract"), new SystemContractDeploymentInput.Types.SystemTransactionMethodCallList());
 
             return l;
         }

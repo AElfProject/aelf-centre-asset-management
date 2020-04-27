@@ -3,7 +3,6 @@ using System.Linq;
 using Acs0;
 using AElf.Contracts.LotteryDemoContract;
 using AElf.OS.Node.Application;
-using AElf.Types;
 
 namespace AElf.Blockchains.MainChain
 {
@@ -15,7 +14,7 @@ namespace AElf.Blockchains.MainChain
 
             l.AddGenesisSmartContract(
                 _codes.Single(kv => kv.Key.Contains("LotteryDemo")).Value,
-                Hash.FromString("AElf.ContractNames.LotteryDemo"), GenerateLotteryDemoInitializationCallList());
+                HashHelper.ComputeFrom("AElf.ContractNames.LotteryDemo"), GenerateLotteryDemoInitializationCallList());
 
             return l;
         }

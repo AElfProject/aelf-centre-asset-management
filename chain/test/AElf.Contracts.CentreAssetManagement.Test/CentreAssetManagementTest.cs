@@ -68,7 +68,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 Amount = 5_00000000,
                 UserToken = "UserToken1",
                 HolderId = HolderId,
-                AddressCategoryHash = Hash.FromString("token_lock")
+                AddressCategoryHash = HashHelper.ComputeFrom("token_lock")
             };
 
 
@@ -99,7 +99,7 @@ namespace AElf.Contracts.CentreAssetManagement
                         To = TokenContractAddress,
                         HolderId = HolderId,
                         UserToken = "UserToken1",
-                        AddressCategoryHash = Hash.FromString("token_lock"),
+                        AddressCategoryHash = HashHelper.ComputeFrom("token_lock"),
                     });
             }
 

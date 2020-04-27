@@ -1,11 +1,12 @@
 ﻿using System.IO;
 using System.Linq;
-using AElf.Blockchains.BasicBaseChain.ContractNames;
 using AElf.Blockchains.MainChain;
 using AElf.Boilerplate.Tester;
 using AElf.Contracts.Deployer;
 using AElf.Contracts.Genesis;
 using AElf.Database;
+using AElf.EconomicSystem;
+using AElf.GovernmentSystem;
 using AElf.Kernel;
 using AElf.Kernel.Consensus;
 using AElf.Kernel.Consensus.AEDPoS;
@@ -52,6 +53,8 @@ namespace AElf.Boilerplate.MainChain
         typeof(WebWebAppAElfModule),
 
         typeof(ParallelExecutionModule),
+        typeof(GovernmentSystemAElfModule),
+        typeof(EconomicSystemAElfModule),
         
         // test contracts by sending txs
         typeof(TesterModule)

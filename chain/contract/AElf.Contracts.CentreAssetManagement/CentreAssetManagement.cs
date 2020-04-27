@@ -34,7 +34,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
             HolderInfo holderInfo = new HolderInfo();
 
-            var holderId = Hash.FromTwoHashes(Context.TransactionId, Context.PreviousBlockHash);
+            var holderId = HashHelper.ConcatAndCompute(Context.TransactionId, Context.PreviousBlockHash);
 
             Assert(State.HashToHolderInfoMap[holderId] == null, "already have a holder");
 
@@ -76,7 +76,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
             foreach (var contractCallWhiteLists in input.CategoryToContactCallWhiteListsMap)
             {
-                State.CategoryToContractCallWhiteListsMap.Set(Hash.FromString(contractCallWhiteLists.Key),
+                State.CategoryToContractCallWhiteListsMap.Set(HashHelper.ComputeFrom(contractCallWhiteLists.Key),
                     contractCallWhiteLists.Value);
             }
 
@@ -168,17 +168,17 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private Hash GetVirtualUserAddress(Hash holder, string userToken, Hash category)
         {
-            var virtualUserAddress = Hash.FromString(userToken);
+            var virtualUserAddress = HashHelper.ComputeFrom(userToken);
 
             if (category?.Value != null)
             {
                 var map = State.CategoryToContractCallWhiteListsMap[category];
                 Assert(map.List.Count > 0, "this category have no contract call list, maybe not initialized.");
 
-                virtualUserAddress = virtualUserAddress.Xor(category);
+                virtualUserAddress = HashHelper.XorAndCompute(virtualUserAddress, category);
             }
 
-            return Hash.FromTwoHashes(holder, virtualUserAddress);
+            return HashHelper.ConcatAndCompute(holder, virtualUserAddress);
         }
 
         public override AssetMoveReturnDto MoveAssetFromMainAddress(AssetMoveDto input)
@@ -220,7 +220,7 @@ namespace AElf.Contracts.CentreAssetManagement
             Assert(managementAddress.ManagementAddressesInTotal > 0, "current key cannot make withdraw request");
 
 
-            var withdrawId = Hash.FromTwoHashes(Context.TransactionId, Context.PreviousBlockHash);
+            var withdrawId = HashHelper.ConcatAndCompute(Context.TransactionId, Context.PreviousBlockHash);
 
 
             Assert(State.Withdraws[withdrawId] == null, "withdraw already exists");
@@ -424,7 +424,7 @@ namespace AElf.Contracts.CentreAssetManagement
             CategoryContractCallAllowanceDto result = new CategoryContractCallAllowanceDto()
             {
                 Category = input.Category,
-                List = {State.CategoryToContractCallWhiteListsMap[Hash.FromString(input.Category)].List}
+                List = {State.CategoryToContractCallWhiteListsMap[HashHelper.ComputeFrom(input.Category)].List}
             };
             return result;
         }
