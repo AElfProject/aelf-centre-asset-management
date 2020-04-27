@@ -17,7 +17,7 @@ namespace AElf.Blockchains.MainChain
                 // find the contracts code by name
                 _codes.Single(kv => kv.Key.Contains("CentreAssetManagement")).Value,
                 // the name of the contract is built from the full name
-                Hash.FromString("AElf.ContractNames.CentreAssetManagement"), 
+                HashHelper.ComputeFrom("AElf.ContractNames.CentreAssetManagement"), 
                 
                 new SystemContractDeploymentInput.Types.SystemTransactionMethodCallList());
 
