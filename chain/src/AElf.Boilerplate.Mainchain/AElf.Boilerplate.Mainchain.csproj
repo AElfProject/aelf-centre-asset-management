@@ -22,8 +22,8 @@
             <OutputItemType>Contract</OutputItemType>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </ProjectReference>
+        <ProjectReference Include="..\AElf.Boilerplate.ContractDeployer\AElf.Boilerplate.ContractDeployer.csproj" />
         <ProjectReference Include="..\AElf.Boilerplate.Tester\AElf.Boilerplate.Tester.csproj" />
-        <ProjectReference Include="..\AElf.Contracts.Deployer\AElf.Contracts.Deployer.csproj" />
     </ItemGroup>
 
     <ItemGroup>

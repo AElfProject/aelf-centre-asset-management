@@ -1,5 +1,4 @@
-    
-  pool:
+pool:
     vmImage: ubuntu-latest
   pr: none 
   trigger: none
@@ -15,5 +14,9 @@
     displayName: 'Install .NET Core SDK'
     inputs:
       version: 3.1.102
+  - script: bash chain/scripts/download_binary.sh
+    displayName: 'Download AElf build tools'
+  - script: bash chain/scripts/install.sh
+    displayName: 'Install protobuf'
   - script: bash build.sh -target=Publish-MyGet --configuration=Release
     displayName: 'publish myget cron'
