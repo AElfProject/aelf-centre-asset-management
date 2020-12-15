@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using AElf.Boilerplate.MainChain;
+using AElf.Boilerplate.SystemTransactionGenerator;
+using AElf.Kernel.Miner.Application;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Hosting;
@@ -24,7 +26,7 @@ namespace AElf.Boilerplate.Launcher
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            AddApplication<MainChainModule>(services);
+            AddApplication<MainChainAElfModule>(services);
             services.AddCors(options =>
             {
                 options.AddPolicy(DefaultCorsPolicyName, builder =>
@@ -44,9 +46,10 @@ namespace AElf.Boilerplate.Launcher
                     }
                 });
             });
+            services.AddSingleton<ISystemTransactionGenerator, DeployContractsSystemTransactionGenerator>();
         }
-        
-        private static void AddApplication<T>(IServiceCollection services) where T: IAbpModule
+
+        private static void AddApplication<T>(IServiceCollection services) where T : IAbpModule
         {
             services.AddApplication<T>();
         }
