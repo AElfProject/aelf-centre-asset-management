@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AElf.EconomicSystem" Version="1.0.0-preview2" />
+    <PackageReference Include="AElf.EconomicSystem" Version="1.0.0" />
     <PackageReference Include="coverlet.msbuild" Version="2.5.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="Shouldly" Version="3.0.2" />
@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AElf.Contracts.TestKit" Version="1.0.0-preview2" />
+    <PackageReference Include="AElf.ContractTestKit" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,13 +34,19 @@
       <Link>Protobuf\Proto\token_contract.proto</Link>
     </ContractStub>
   </ItemGroup>
+  
+  <ItemGroup>
+    <ContractMessage Include="..\..\protobuf\authority_info.proto">
+      <Link>Protobuf\Proto\authority_info.proto</Link>
+    </ContractMessage>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\contract\AElf.Contracts.CentreAssetManagement\AElf.Contracts.CentreAssetManagement.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AElf.Contracts.MultiToken" Version="1.0.0-preview1" />
+    <PackageReference Include="AElf.Contracts.MultiToken" Version="1.0.0" />
   </ItemGroup>
   
 </Project>

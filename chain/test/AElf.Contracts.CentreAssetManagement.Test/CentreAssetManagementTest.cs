@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
-using AElf.Contracts.TestKit;
+using AElf.ContractTestKit;
 using AElf.Types;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -11,23 +11,6 @@ namespace AElf.Contracts.CentreAssetManagement
 {
     public class CentreAssetManagementTest : CentreAssetManagementTestBase
     {
-        [Fact]
-        public async Task HelloCall_ReturnsCentreAssetManagementMessage()
-        {
-            var txResult = await CentreAssetManagementStub.Hello.SendAsync(new Empty());
-            txResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
-            var text = new HelloReturn();
-            text.MergeFrom(txResult.TransactionResult.ReturnValue);
-            text.Value.ShouldBe("Hello World!");
-            var result = await TokenContractStub.Transfer.SendAsync(new TransferInput
-            {
-                Symbol = "ELF",
-                Amount = 100,
-                To = ContractZeroAddress
-            });
-            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
-        }
-
         [Fact]
         public async Task MainTest()
         {
@@ -73,7 +56,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
 
             //move elf token from main address to user1's voting address
-            var moveFromMainToVirtualTokenLockResult =
+        var moveFromMainToVirtualTokenLockResult =
                 await CentreAssetManagementStub.MoveAssetFromMainAddress.SendAsync(
                     assetMoveFromMainToVirtualTokenLockDto1);
 
@@ -106,7 +89,7 @@ namespace AElf.Contracts.CentreAssetManagement
             await CheckBalanceAsync(userVoteAddress1, 4_00000000);
 
 
-            var withdrawAddress1 = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[4].PublicKey);
+            var withdrawAddress1 = Address.FromPublicKey(SampleAccount.Accounts[4].KeyPair.PublicKey);
 
             //withdraw to user1 origin address
             var requestWithdrawToOriginAddress1Result = await CentreAssetManagementStub.RequestWithdraw.SendAsync(
@@ -121,7 +104,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
             Assert.True(withdrawRequest1 != null);
 
-            var centreAssetManagementStub2 = GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[1]);
+            var centreAssetManagementStub2 = GetCentreAssetManagementStub(SampleAccount.Accounts[1].KeyPair);
 
             var manageAddress2ApproveWithdraw = await centreAssetManagementStub2.ApproveWithdraw.SendWithExceptionAsync(
                 new WithdrawApproveDto()
@@ -134,7 +117,7 @@ namespace AElf.Contracts.CentreAssetManagement
             manageAddress2ApproveWithdraw.TransactionResult.Error.Contains(
                 "current management address cannot approve, amount limited");
 
-            var centreAssetManagementStub3 = GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[2]);
+            var centreAssetManagementStub3 = GetCentreAssetManagementStub(SampleAccount.Accounts[2].KeyPair);
 
             var manageAddress3ApproveWithdraw = await centreAssetManagementStub3.ApproveWithdraw.SendAsync(
                 new WithdrawApproveDto()
@@ -161,7 +144,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public Address GetAddress(int index)
         {
-            return Address.FromPublicKey(SampleECKeyPairs.KeyPairs[index].PublicKey);
+            return Address.FromPublicKey(SampleAccount.Accounts[index].KeyPair.PublicKey);
         }
 
         [Fact]
@@ -175,20 +158,20 @@ namespace AElf.Contracts.CentreAssetManagement
                 Symbol = "ELF",
                 OwnerAddress = addressOwner,
                 SettingsEffectiveTime = 5,
-                ShutdowAddress = shutdownAddress,
+                ShutdownAddress = shutdownAddress,
             });
 
             var holderId = createHolderResult.Output.Id;
 
             //use OwnerAddress to shutdown
-            await GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[1]).ShutdownHolder
+            await GetCentreAssetManagementStub(SampleAccount.Accounts[1].KeyPair).ShutdownHolder
                 .SendAsync(new HolderShutdownDto() {HolderId = holderId});
 
             await CentreAssetManagementStub.RebootHolder.SendAsync(new HolderRebootDto()
                 {HolderOwner = addressOwner, HolderId = holderId});
             
             //use ShutdownAddress to shutdown
-            await GetCentreAssetManagementStub(SampleECKeyPairs.KeyPairs[2]).ShutdownHolder
+            await GetCentreAssetManagementStub(SampleAccount.Accounts[2].KeyPair).ShutdownHolder
                 .SendAsync(new HolderShutdownDto() {HolderId = holderId});
 
             await CentreAssetManagementStub.RebootHolder.SendAsync(new HolderRebootDto()

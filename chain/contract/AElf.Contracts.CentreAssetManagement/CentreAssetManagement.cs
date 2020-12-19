@@ -1,9 +1,7 @@
-using System;
 using System.Linq;
 using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp;
 using AElf.Types;
-using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElf.Contracts.CentreAssetManagement
@@ -16,17 +14,6 @@ namespace AElf.Contracts.CentreAssetManagement
     public class CentreAssetManagement : CentreAssetManagementContainer.CentreAssetManagementBase
     {
         private const long WITHDRAW_EXPIRED_SECONDS = 86400;
-
-        /// <summary>
-        /// The implementation of the Hello method. It takes no parameters and returns on of the custom data types
-        /// defined in the protobuf definition file.
-        /// </summary>
-        /// <param name="input">Empty message (from Protobuf)</param>
-        /// <returns>a HelloReturn</returns>
-        public override HelloReturn Hello(Empty input)
-        {
-            return new HelloReturn {Value = "Hello World!"};
-        }
 
         public override HolderCreateReturnDto CreateHolder(HolderCreateDto input)
         {
@@ -45,7 +32,7 @@ namespace AElf.Contracts.CentreAssetManagement
             }
 
             holderInfo.OwnerAddress = input.OwnerAddress;
-            holderInfo.ShutdownAddress = input.ShutdowAddress;
+            holderInfo.ShutdownAddress = input.ShutdownAddress;
             holderInfo.SettingsEffectiveTime = input.SettingsEffectiveTime;
 
             var tokenInfo = State.TokenContract.GetTokenInfo.Call(new GetTokenInfoInput() {Symbol = input.Symbol});
@@ -63,6 +50,12 @@ namespace AElf.Contracts.CentreAssetManagement
                 Info = holderInfo
             };
 
+            Context.Fire(new HolderCreated
+            {
+                HolderId = holderId,
+                Symbol = input.Symbol,
+                OwnerAddress = input.OwnerAddress
+            });
 
             return result;
         }
@@ -76,13 +69,15 @@ namespace AElf.Contracts.CentreAssetManagement
 
             foreach (var contractCallWhiteLists in input.CategoryToContactCallWhiteListsMap)
             {
-                State.CategoryToContractCallWhiteListsMap.Set(HashHelper.ComputeFrom(contractCallWhiteLists.Key),
+                State.CategoryToContractCallWhiteListsMap.Set(
+                    CalculateCategoryHash(new StringValue {Value = contractCallWhiteLists.Key}),
                     contractCallWhiteLists.Value);
             }
 
             State.CentreAssetManagementInfo.Value = new CentreAssetManagementInfo()
             {
-                Owner = input.Owner
+                Owner = input.Owner,
+                Categories = {input.CategoryToContactCallWhiteListsMap.Keys}
             };
 
             State.Initialized.Value = true;
@@ -91,7 +86,8 @@ namespace AElf.Contracts.CentreAssetManagement
         }
 
 
-        private HolderInfo GetHolderInfo(Hash holderId)
+        [View]
+        public override HolderInfo GetHolderInfo(Hash holderId)
         {
             Assert(holderId?.Value.IsEmpty == false, "holder id required");
 
@@ -238,6 +234,14 @@ namespace AElf.Contracts.CentreAssetManagement
             WithdrawRequestReturnDto result = new WithdrawRequestReturnDto();
 
             result.Id = withdrawId;
+            
+            Context.Fire(new WithdrawRequested
+            {
+                Amount = input.Amount,
+                HolderId =input.HolderId,
+                ReqeustAddress = Context.Sender,
+                WithdrawAddress = input.Address
+            });
 
             return result;
         }
@@ -418,15 +422,62 @@ namespace AElf.Contracts.CentreAssetManagement
             return new Empty();
         }
 
+        public override Empty AddCategoryToContractCallWhiteLists(CategoryToContractCallWhiteListsDto input)
+        {
+            Assert(State.CentreAssetManagementInfo.Value?.Owner == Context.Sender, "no permission");
+            var centreAssetManagementInfo = State.CentreAssetManagementInfo.Value;
+            foreach (var contractCallWhiteLists in input.CategoryToContactCallWhiteListsMap)
+            {
+                var categoryHash = CalculateCategoryHash(new StringValue {Value = contractCallWhiteLists.Key});
+                if (State.CategoryToContractCallWhiteListsMap[categoryHash] != null)
+                    centreAssetManagementInfo.Categories.Add(contractCallWhiteLists.Key);
+                State.CategoryToContractCallWhiteListsMap.Set(categoryHash, contractCallWhiteLists.Value);
+            }
+
+            State.CentreAssetManagementInfo.Value = centreAssetManagementInfo;
+
+            return new Empty();
+        }
+
+        [View]
+        public override CategoryToContractCallWhiteListsDto GetCategoryToContractCall(Empty input)
+        {
+            var categoryToContractCallWhiteListsDto = new CategoryToContractCallWhiteListsDto();
+            var centreAssetManagementInfo = State.CentreAssetManagementInfo.Value;
+            foreach (var category in centreAssetManagementInfo.Categories)
+            {
+                categoryToContractCallWhiteListsDto.CategoryToContactCallWhiteListsMap[category] =
+                    State.CategoryToContractCallWhiteListsMap[GetCategoryHash(new StringValue {Value = category})];
+            }
+
+            return categoryToContractCallWhiteListsDto;
+        }
+
         [View]
         public override CategoryContractCallAllowanceDto GetCategoryContractCallAllowance(CategoryDto input)
         {
-            CategoryContractCallAllowanceDto result = new CategoryContractCallAllowanceDto()
+            CategoryContractCallAllowanceDto result = new CategoryContractCallAllowanceDto
             {
                 Category = input.Category,
-                List = {State.CategoryToContractCallWhiteListsMap[HashHelper.ComputeFrom(input.Category)].List}
+                List =
+                {
+                    State.CategoryToContractCallWhiteListsMap[GetCategoryHash(new StringValue {Value = input.Category})]
+                        .List
+                }
             };
             return result;
+        }
+
+        [View]
+        public override Hash GetCategoryHash(StringValue category)
+        {
+            var hash = CalculateCategoryHash(category);
+            return State.CategoryToContractCallWhiteListsMap[hash] != null ? hash : null;
+        }
+
+        private Hash CalculateCategoryHash(StringValue category)
+        {
+            return HashHelper.ComputeFrom(category.Value);
         }
     }
 }

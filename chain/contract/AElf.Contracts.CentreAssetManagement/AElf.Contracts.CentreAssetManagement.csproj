@@ -4,8 +4,6 @@
     <!-- The root namespace -->
     <RootNamespace>AElf.Contracts.CentreAssetManagement</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <!-- Mark this project as a contract -->
-    <IsContract>true</IsContract>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>

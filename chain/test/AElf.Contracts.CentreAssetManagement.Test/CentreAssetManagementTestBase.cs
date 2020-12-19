@@ -1,14 +1,12 @@
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Acs0;
 using AElf.Contracts.MultiToken;
-using AElf.Contracts.TestKit;
+using AElf.ContractTestKit;
 using AElf.Cryptography.ECDSA;
-using AElf.CSharp.Core;
 using AElf.EconomicSystem;
 using AElf.Kernel;
 using AElf.Kernel.Token;
+using AElf.Standards.ACS0;
 using AElf.Types;
 using Google.Protobuf;
 using Volo.Abp.Threading;
@@ -24,7 +22,7 @@ namespace AElf.Contracts.CentreAssetManagement
         private Address CentreAssetManagementAddress { get; set; }
         protected Address TokenContractAddress { get; set; }
 
-        private ECKeyPair DefaultKeyPair { get; set; } = SampleECKeyPairs.KeyPairs.First();
+        private ECKeyPair DefaultKeyPair { get; set; } = SampleAccount.Accounts.First().KeyPair;
 
         protected Hash HolderId { get; private set; }
 
@@ -51,7 +49,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
             TokenContractAddress = AsyncHelper.RunSync(() =>
                 ZeroContractStub.DeploySystemSmartContract.SendAsync(
-                    new SystemContractDeploymentInput
+                    new SystemContractDeploymentInput()
                     {
                         Category = KernelConstants.DefaultRunnerCategory,
                         Code = ByteString.CopyFrom(File.ReadAllBytes(typeof(TokenContract).Assembly.Location)),
@@ -92,19 +90,19 @@ namespace AElf.Contracts.CentreAssetManagement
                     {
                         new ManagementAddress()
                         {
-                            Address = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[0].PublicKey),
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
                             Amount = long.MaxValue,
                             ManagementAddressesLimitAmount = 1000_000_00000000,
                             ManagementAddressesInTotal = 2
                         },
                         new ManagementAddress()
                         {
-                            Address = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[1].PublicKey),
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey),
                             Amount = 1000_00000000,
                         },
                         new ManagementAddress()
                         {
-                            Address = Address.FromPublicKey(SampleECKeyPairs.KeyPairs[2].PublicKey),
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey),
                             Amount = 1000_000_00000000,
                         },
                     }
@@ -148,7 +146,6 @@ namespace AElf.Contracts.CentreAssetManagement
                             Symbol = "ELF",
                             IsBurnable = true,
                             Decimals = 8,
-                            IsProfitable = true,
                             TokenName = "Elf token.",
                             TotalSupply = 10_0000_0000_00000000
                         }.ToByteString()

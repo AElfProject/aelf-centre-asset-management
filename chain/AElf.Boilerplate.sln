@@ -13,8 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{DBC47323-E
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AElf.Contracts.CentreAssetManagement.Test", "test\AElf.Contracts.CentreAssetManagement.Test\AElf.Contracts.CentreAssetManagement.Test.csproj", "{3631B538-C617-4FCE-9C9B-1D1B5F290A7F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AElf.Contracts.HelloWorldContract.Tests", "test\AElf.Contracts.HelloWorldContract.Tests\AElf.Contracts.HelloWorldContract.Tests.csproj", "{3631B538-C617-4FCE-9C9B-1D1B5F290A7F}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AElf.Contracts.BingoGameContract.Tests", "test\AElf.Contracts.BingoGameContract.Tests\AElf.Contracts.BingoGameContract.Tests.csproj", "{E2491309-869C-4422-A7B6-B895C30B7D5D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "contract", "contract", "{5C980166-C987-470D-AEE0-3858A170A903}"
@@ -25,8 +23,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AElf.Contracts.BingoGameContract", "contract\AElf.Contracts.BingoGameContract\AElf.Contracts.BingoGameContract.csproj", "{19311D5A-8788-4463-A6EF-6AA4E9115232}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AElf.Contracts.CentreAssetManagement", "contract\AElf.Contracts.CentreAssetManagement\AElf.Contracts.CentreAssetManagement.csproj", "{AC06E580-EFC8-4D3F-BA4A-B2D2D1F65B9F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AElf.Contracts.HelloWorldContract", "contract\AElf.Contracts.HelloWorldContract\AElf.Contracts.HelloWorldContract.csproj", "{AC06E580-EFC8-4D3F-BA4A-B2D2D1F65B9F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AElf.Contracts.GreeterContract", "contract\AElf.Contracts.GreeterContract\AElf.Contracts.GreeterContract.csproj", "{4C0F6A56-667B-4534-A60F-CDAC5F3A5534}"
 EndProject
