@@ -53,10 +53,6 @@ service CentreAssetManagement {
     rpc MoveAssetFromMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
     }
 
-    rpc GetCategoryContractCallAllowance (CategoryDto) returns (CategoryContractCallAllowanceDto) {
-        option (aelf.is_view) = true;
-    }
-
     rpc Initialize (InitializeDto) returns (google.protobuf.Empty) {
     }
 
@@ -72,17 +68,21 @@ service CentreAssetManagement {
     rpc CancelWithdraws (CancelWithdrawsDto) returns (google.protobuf.Empty) {
 
     }
-
-    rpc GetVirtualAddress (AssetMoveDto) returns (aelf.Address) {
-        option (aelf.is_view) = true;
-    }
-
-    rpc SendTransactionByUserVirtualAddress (SendTransactionByUserVirtualAddressDto) returns (google.protobuf.Empty) {
-
+    
+    rpc ChangeContractOwner(aelf.Address) returns (google.protobuf.Empty){
+        
     }
 
     // only the owner of contract can add new categories
     rpc AddCategoryToContractCallWhiteLists (CategoryToContractCallWhiteListsDto) returns (google.protobuf.Empty) {
+    }
+    
+    rpc SendTransactionByUserVirtualAddress (SendTransactionByUserVirtualAddressDto) returns (google.protobuf.Empty) {
+
+    }
+
+    rpc GetVirtualAddress (AssetMoveDto) returns (aelf.Address) {
+        option (aelf.is_view) = true;
     }
 
     rpc GetCategoryToContractCall (google.protobuf.Empty) returns(CategoryToContractCallWhiteListsDto) {
@@ -94,6 +94,14 @@ service CentreAssetManagement {
     }
     
     rpc GetHolderInfo(aelf.Hash) returns (HolderInfo) {
+        option (aelf.is_view) = true;
+    }
+    
+    rpc GetCentreAssetManagementInfo (google.protobuf.Empty) returns(CentreAssetManagementInfo) {
+        option (aelf.is_view) = true;
+    }
+    
+    rpc GetCategoryContractCallAllowance (CategoryDto) returns (CategoryContractCallAllowanceDto) {
         option (aelf.is_view) = true;
     }
 }

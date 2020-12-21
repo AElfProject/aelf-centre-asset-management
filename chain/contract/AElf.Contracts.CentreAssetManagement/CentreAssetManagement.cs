@@ -443,6 +443,15 @@ namespace AElf.Contracts.CentreAssetManagement
             return new Empty();
         }
 
+        public override Empty ChangeContractOwner(Address input)
+        {
+            var centreAssetManagementInfo = State.CentreAssetManagementInfo.Value;
+            Assert(centreAssetManagementInfo.Owner == Context.Sender, "No permission.");
+            centreAssetManagementInfo.Owner = input;
+            State.CentreAssetManagementInfo.Value = centreAssetManagementInfo;
+            return new Empty();
+        }
+
         [View]
         public override CategoryToContractCallWhiteListsDto GetCategoryToContractCall(Empty input)
         {
@@ -477,6 +486,12 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var hash = CalculateCategoryHash(category);
             return State.CategoryToContractCallWhiteListsMap[hash] != null ? hash : null;
+        }
+
+        [View]
+        public override CentreAssetManagementInfo GetCentreAssetManagementInfo(Empty input)
+        {
+            return State.CentreAssetManagementInfo.Value;
         }
 
         private Hash CalculateCategoryHash(StringValue category)

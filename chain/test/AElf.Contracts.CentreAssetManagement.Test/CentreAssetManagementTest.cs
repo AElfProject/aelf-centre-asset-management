@@ -3,7 +3,6 @@ using AElf.Contracts.MultiToken;
 using AElf.ContractTestKit;
 using AElf.Types;
 using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
 using Shouldly;
 using Xunit;
 
@@ -12,8 +11,69 @@ namespace AElf.Contracts.CentreAssetManagement
     public class CentreAssetManagementTest : CentreAssetManagementTestBase
     {
         [Fact]
+        public async Task CreateHolderTest()
+        {
+            DeployContracts();
+            await InitializeCentreAssetManagementAsync();
+
+            {
+                var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendWithExceptionAsync(
+                    new HolderCreateDto()
+                    {
+                        Symbol = "ELF",
+                        ManagementAddresses =
+                        {
+                            new ManagementAddress
+                            {
+                                Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
+                                Amount = 100,
+                                ManagementAddressesLimitAmount = 100,
+                                ManagementAddressesInTotal = 2
+                            },
+                            new ManagementAddress
+                            {
+                                Address = Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey),
+                                Amount = 10,
+                                ManagementAddressesLimitAmount = 10,
+                                ManagementAddressesInTotal = 2
+                            }
+                        }
+                    });
+
+                createHolderResult.TransactionResult.Error.ShouldContain("Invalid management address.");
+            }
+            
+            {
+                await CentreAssetManagementStub.CreateHolder.SendAsync(
+                    new HolderCreateDto()
+                    {
+                        Symbol = "ELF",
+                        ManagementAddresses =
+                        {
+                            new ManagementAddress
+                            {
+                                Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
+                                Amount = 100,
+                                ManagementAddressesLimitAmount = 100,
+                                ManagementAddressesInTotal = 2
+                            },
+                            new ManagementAddress
+                            {
+                                Address = Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey),
+                                Amount = 100,
+                                ManagementAddressesLimitAmount = 10,
+                                ManagementAddressesInTotal = 2
+                            }
+                        }
+                    });
+            }
+        }
+
+        [Fact]
         public async Task MainTest()
         {
+            InitializeContracts();
+
             //origin address
             //deposit address (exchange virtual user address)
             //vote address (exchange virtual user address)
@@ -56,7 +116,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
 
             //move elf token from main address to user1's voting address
-        var moveFromMainToVirtualTokenLockResult =
+            var moveFromMainToVirtualTokenLockResult =
                 await CentreAssetManagementStub.MoveAssetFromMainAddress.SendAsync(
                     assetMoveFromMainToVirtualTokenLockDto1);
 
@@ -150,6 +210,7 @@ namespace AElf.Contracts.CentreAssetManagement
         [Fact]
         public async Task HackAttackAndShutdown()
         {
+            InitializeContracts();
             var addressOwner = GetAddress(1);
             var shutdownAddress = GetAddress(2);
 
@@ -169,7 +230,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
             await CentreAssetManagementStub.RebootHolder.SendAsync(new HolderRebootDto()
                 {HolderOwner = addressOwner, HolderId = holderId});
-            
+
             //use ShutdownAddress to shutdown
             await GetCentreAssetManagementStub(SampleAccount.Accounts[2].KeyPair).ShutdownHolder
                 .SendAsync(new HolderShutdownDto() {HolderId = holderId});

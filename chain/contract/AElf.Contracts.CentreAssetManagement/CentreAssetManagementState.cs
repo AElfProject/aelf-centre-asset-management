@@ -13,18 +13,16 @@ namespace AElf.Contracts.CentreAssetManagement
 
         internal TokenContractContainer.TokenContractReferenceState TokenContract { get; set; }
 
-
         public SingletonState<CentreAssetManagementInfo> CentreAssetManagementInfo { get; set; }
 
         //Store what method can be called in one category
-        public MappedState<Hash,ContractCallWhiteLists> CategoryToContractCallWhiteListsMap { get; set; }
-        
+        public MappedState<Hash, ContractCallWhiteLists> CategoryToContractCallWhiteListsMap { get; set; }
+
         public SingletonState<bool> Initialized { get; set; }
-        
-        
-        public MappedState<Hash,HolderInfo> HashToHolderInfoMap { get; set; }
-        
-        public MappedState<Hash,WithdrawInfo> Withdraws { get; set; }
-        
+
+
+        public MappedState<Hash, HolderInfo> HashToHolderInfoMap { get; set; }
+
+        public MappedState<Hash, WithdrawInfo> Withdraws { get; set; }
     }
 }

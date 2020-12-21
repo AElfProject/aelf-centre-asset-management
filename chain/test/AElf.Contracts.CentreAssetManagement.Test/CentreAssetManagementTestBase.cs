@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
 using AElf.ContractTestKit;
 using AElf.Cryptography.ECDSA;
@@ -22,16 +23,47 @@ namespace AElf.Contracts.CentreAssetManagement
         private Address CentreAssetManagementAddress { get; set; }
         protected Address TokenContractAddress { get; set; }
 
-        private ECKeyPair DefaultKeyPair { get; set; } = SampleAccount.Accounts.First().KeyPair;
+        protected ECKeyPair DefaultKeyPair { get; set; } = SampleAccount.Accounts.First().KeyPair;
 
         protected Hash HolderId { get; private set; }
 
-        protected CentreAssetManagementTestBase()
+        protected void InitializeContracts()
         {
-            InitializeContracts();
+            DeployContracts();
+            AsyncHelper.RunSync(async () =>
+            {
+                await InitializeCentreAssetManagementAsync();
+
+                var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendAsync(new HolderCreateDto()
+                {
+                    Symbol = "ELF",
+                    ManagementAddresses =
+                    {
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
+                            Amount = long.MaxValue,
+                            ManagementAddressesLimitAmount = 1000_000_00000000,
+                            ManagementAddressesInTotal = 2
+                        },
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey),
+                            Amount = 1000_00000000,
+                        },
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey),
+                            Amount = 1000_000_00000000,
+                        }
+                    }
+                });
+
+                HolderId = createHolderResult.Output.Id;
+            });
         }
 
-        private void InitializeContracts()
+        protected void DeployContracts()
         {
             ZeroContractStub = GetZeroContractStub(DefaultKeyPair);
 
@@ -57,59 +89,32 @@ namespace AElf.Contracts.CentreAssetManagement
                         TransactionMethodCallList = GetTokenContractInitialMethodCallList()
                     })).Output;
             TokenContractStub = GetTokenContractStub(DefaultKeyPair);
+        }
 
-            AsyncHelper.RunSync(async () =>
-            {
-                await CentreAssetManagementStub.Initialize.SendAsync(
-                    new InitializeDto()
+        protected async Task InitializeCentreAssetManagementAsync()
+        {
+            await CentreAssetManagementStub.Initialize.SendAsync(
+                new InitializeDto()
+                {
+                    Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    CategoryToContactCallWhiteListsMap =
                     {
-                        Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
-                        CategoryToContactCallWhiteListsMap =
                         {
+                            "token_lock", new ContractCallWhiteLists()
                             {
-                                "token_lock", new ContractCallWhiteLists()
+                                List =
                                 {
-                                    List =
+                                    new ContractCallWhiteList()
                                     {
-                                        new ContractCallWhiteList()
-                                        {
-                                            Address = TokenContractAddress,
-                                            MethodNames = {"Lock", "Unlock", "Transfer"}
-                                        }
+                                        Address = TokenContractAddress,
+                                        MethodNames = {"Lock", "Unlock", "Transfer"}
                                     }
                                 }
                             }
                         }
                     }
-                );
-
-                var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendAsync(new HolderCreateDto()
-                {
-                    Symbol = "ELF",
-                    ManagementAddresses =
-                    {
-                        new ManagementAddress()
-                        {
-                            Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
-                            Amount = long.MaxValue,
-                            ManagementAddressesLimitAmount = 1000_000_00000000,
-                            ManagementAddressesInTotal = 2
-                        },
-                        new ManagementAddress()
-                        {
-                            Address = Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey),
-                            Amount = 1000_00000000,
-                        },
-                        new ManagementAddress()
-                        {
-                            Address = Address.FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey),
-                            Amount = 1000_000_00000000,
-                        },
-                    }
-                });
-
-                HolderId = createHolderResult.Output.Id;
-            });
+                }
+            );
         }
 
         private ACS0Container.ACS0Stub GetZeroContractStub(ECKeyPair keyPair)
