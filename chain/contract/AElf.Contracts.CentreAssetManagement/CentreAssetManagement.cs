@@ -28,6 +28,10 @@ namespace AElf.Contracts.CentreAssetManagement
             holderInfo.MainAddress = Context.ConvertVirtualAddressToContractAddress(holderId);
             foreach (var managementAddress in input.ManagementAddresses)
             {
+                Assert(
+                    input.ManagementAddresses.Count(m =>
+                        m.Amount >= managementAddress.ManagementAddressesLimitAmount) >=
+                    managementAddress.ManagementAddressesInTotal, "Invalid management address.");
                 holderInfo.ManagementAddresses[managementAddress.Address.Value.ToBase64()] = managementAddress;
             }
 
@@ -234,11 +238,11 @@ namespace AElf.Contracts.CentreAssetManagement
             WithdrawRequestReturnDto result = new WithdrawRequestReturnDto();
 
             result.Id = withdrawId;
-            
+
             Context.Fire(new WithdrawRequested
             {
                 Amount = input.Amount,
-                HolderId =input.HolderId,
+                HolderId = input.HolderId,
                 ReqeustAddress = Context.Sender,
                 WithdrawAddress = input.Address
             });
