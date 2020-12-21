@@ -67,6 +67,33 @@ namespace AElf.Contracts.CentreAssetManagement
                         }
                     });
             }
+            
+            {
+                var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendWithExceptionAsync(
+                    new HolderCreateDto()
+                    {
+                        Symbol = "ELF",
+                        ManagementAddresses =
+                        {
+                            new ManagementAddress
+                            {
+                                Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
+                                Amount = 100,
+                                ManagementAddressesLimitAmount = 100,
+                                ManagementAddressesInTotal = 2
+                            },
+                            new ManagementAddress
+                            {
+                                Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
+                                Amount = 100,
+                                ManagementAddressesLimitAmount = 10,
+                                ManagementAddressesInTotal = 2
+                            }
+                        }
+                    });
+
+                createHolderResult.TransactionResult.Error.ShouldContain("the same management address exists");
+            }
         }
 
         [Fact]

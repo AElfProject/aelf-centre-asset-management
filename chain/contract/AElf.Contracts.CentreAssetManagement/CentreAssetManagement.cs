@@ -31,7 +31,8 @@ namespace AElf.Contracts.CentreAssetManagement
                 Assert(
                     input.ManagementAddresses.Count(m =>
                         m.Amount >= managementAddress.ManagementAddressesLimitAmount) >=
-                    managementAddress.ManagementAddressesInTotal, "Invalid management address.");
+                    managementAddress.ManagementAddressesInTotal, "invalid management address.");
+                Assert(!holderInfo.ManagementAddresses.TryGetValue(managementAddress.Address.Value.ToBase64(), out _), "the same management address exists");
                 holderInfo.ManagementAddresses[managementAddress.Address.Value.ToBase64()] = managementAddress;
             }
 
