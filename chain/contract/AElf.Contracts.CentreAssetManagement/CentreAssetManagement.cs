@@ -107,8 +107,7 @@ namespace AElf.Contracts.CentreAssetManagement
             Context.SendVirtualInline(virtualUserAddress, State.TokenContract.Value,
                 nameof(State.TokenContract.Transfer), tokenInput);
 
-            AssetMoveReturnDto result = new AssetMoveReturnDto();
-            result.Success = true;
+            AssetMoveReturnDto result = new AssetMoveReturnDto {Success = true};
 
             return result;
         }
@@ -133,7 +132,7 @@ namespace AElf.Contracts.CentreAssetManagement
             if (category?.Value != null)
             {
                 var map = State.CategoryToContractCallWhiteListsMap[category];
-                Assert(map.List.Count > 0, "this category have no contract call list, maybe not initialized.");
+                Assert(map.List.Count > 0, "No contract call list for this category, maybe not initialized.");
 
                 virtualUserAddress = HashHelper.XorAndCompute(virtualUserAddress, category);
             }
@@ -169,21 +168,21 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override WithdrawRequestReturnDto RequestWithdraw(WithdrawRequestDto input)
         {
-            Assert(!input.Address.Value.IsEmpty, "address required");
-            Assert(input.Amount > 0, "amount required");
+            Assert(!input.Address.Value.IsEmpty, "Address required.");
+            Assert(input.Amount > 0, "Amount required.");
 
 
             var holderInfo = GetHolderInfo(input.HolderId);
 
             var managementAddress = CheckMoveFromMainPermission(holderInfo, input.Amount);
 
-            Assert(managementAddress.ManagementAddressesInTotal > 0, "current key cannot make withdraw request");
+            Assert(managementAddress.ManagementAddressesInTotal > 0, "Current key cannot make withdraw request.");
 
 
             var withdrawId = HashHelper.ConcatAndCompute(Context.TransactionId, Context.PreviousBlockHash);
 
 
-            Assert(State.Withdraws[withdrawId] == null, "withdraw already exists");
+            Assert(State.Withdraws[withdrawId] == null, "Withdraw already exists.");
 
             State.Withdraws[withdrawId] = new WithdrawInfo()
             {
@@ -216,9 +215,9 @@ namespace AElf.Contracts.CentreAssetManagement
 
             var withdraw = State.Withdraws[input.Id];
 
-            Assert(withdraw != null, "withdraw not exists");
+            Assert(withdraw != null, "Withdraw not exists.");
 
-            Assert(withdraw.Amount == input.Amount && withdraw.Address == input.Address, "data not matches");
+            Assert(withdraw.Amount == input.Amount && withdraw.Address == input.Address, "Withdraw data not matched.");
 
             var holderInfo = GetHolderInfo(withdraw.HolderId);
 
@@ -226,7 +225,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
 
             Assert(managementAddress.Amount >= withdraw.ManagementAddressesLimitAmount,
-                "current management address cannot approve, amount limited");
+                "Current management address cannot approve, amount limited");
 
 
             var duration = Context.CurrentBlockTime - withdraw.AddedTime;
@@ -293,12 +292,12 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var methodCallWithList = State.CategoryToContractCallWhiteListsMap[input.AddressCategoryHash];
 
-            Assert(methodCallWithList != null, "category not exists");
+            Assert(methodCallWithList != null, "Category not exists.");
 
             var callPermission = methodCallWithList.List.Any(
                 p => p.Address == input.To && p.MethodNames.Any(m => m == input.MethodName));
 
-            Assert(callPermission, "cannot invoke this transaction");
+            Assert(callPermission, "Unable to execute this transaction.");
 
             var holderInfo = GetHolderInfo(input.HolderId);
             CheckManagementAddressPermission(holderInfo);
@@ -314,7 +313,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override Empty RebootHolder(HolderRebootDto input)
         {
-            Assert(State.CentreAssetManagementInfo.Value?.Owner == Context.Sender, "no permission");
+            Assert(State.CentreAssetManagementInfo.Value?.Owner == Context.Sender, "No permission.");
 
             var holderInfo = GetHolderInfo(input.HolderId);
 
@@ -331,7 +330,7 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var holderInfo = GetHolderInfo(input.HolderId);
 
-            Assert(holderInfo.OwnerAddress == Context.Sender, "no permission");
+            Assert(holderInfo.OwnerAddress == Context.Sender, "No permission.");
 
             holderInfo.UpdatingInfo = new HolderUpdatingInfo()
             {
@@ -351,7 +350,7 @@ namespace AElf.Contracts.CentreAssetManagement
             var holderInfo = GetHolderInfo(input.HolderId);
 
             Assert(holderInfo.ShutdownAddress == Context.Sender || holderInfo.OwnerAddress == Context.Sender,
-                "no permission");
+                "No permission.");
 
             holderInfo.IsShutdown = true;
             holderInfo.UpdatingInfo = null;
@@ -392,7 +391,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override Empty AddCategoryToContractCallWhiteLists(CategoryToContractCallWhiteListsDto input)
         {
-            Assert(State.CentreAssetManagementInfo.Value?.Owner == Context.Sender, "no permission");
+            Assert(State.CentreAssetManagementInfo.Value?.Owner == Context.Sender, "No permission.");
             var centreAssetManagementInfo = State.CentreAssetManagementInfo.Value;
             foreach (var contractCallWhiteLists in input.CategoryToContactCallWhiteListsMap)
             {
@@ -515,7 +514,7 @@ namespace AElf.Contracts.CentreAssetManagement
             var managementAddress = GetManagementAddressFromHolderInfo(holderInfo);
 
             Assert(managementAddress.Amount >= amount,
-                "current management address can not move this asset, more amount required");
+                "Current management address can not move this asset, more amount required.");
 
             return managementAddress;
         }
