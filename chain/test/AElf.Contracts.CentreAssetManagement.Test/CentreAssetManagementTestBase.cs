@@ -59,6 +59,7 @@ namespace AElf.Contracts.CentreAssetManagement
                     },
                     OwnerAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
                     ShutdownAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    SettingsEffectiveTime = 3600
                 });
 
                 HolderId = createHolderResult.Output.Id;

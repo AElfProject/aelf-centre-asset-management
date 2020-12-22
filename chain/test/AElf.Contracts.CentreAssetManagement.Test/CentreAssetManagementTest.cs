@@ -41,7 +41,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 
                 initializeResult.TransactionResult.Error.ShouldContain("Contract owner cannot be null.");
             }
-            
+
             await CentreAssetManagementStub.Initialize.SendAsync(
                 new InitializeDto()
                 {
@@ -65,6 +65,9 @@ namespace AElf.Contracts.CentreAssetManagement
                 }
             );
             
+            var cateGoryHash = await CentreAssetManagementStub.GetCategoryHash.CallAsync(new StringValue{Value = "token_lock"});
+            cateGoryHash.ShouldNotBeNull();
+
             {
                 var initializeResult = await CentreAssetManagementStub.Initialize.SendWithExceptionAsync(
                     new InitializeDto()
@@ -116,7 +119,9 @@ namespace AElf.Contracts.CentreAssetManagement
             holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey).Value.ToBase64());
             holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey).Value.ToBase64());
             holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey).Value.ToBase64());
-            // holder.OwnerAddress.ShouldBe();
+            holder.OwnerAddress.ShouldBe(Address.FromPublicKey(DefaultKeyPair.PublicKey));
+            holder.MainAddress.ShouldNotBeNull();
+            holder.SettingsEffectiveTime.ShouldBe(3600);
         }
         
         [Fact]
@@ -209,6 +214,41 @@ namespace AElf.Contracts.CentreAssetManagement
 
                 createHolderResult.TransactionResult.Error.ShouldContain("The same management address exists");
             }
+        }
+
+        [Fact]
+        public async Task UserChargingTest()
+        {
+            InitializeContracts();
+            var userChargingAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new AssetMoveDto
+            {
+                AddressCategoryHash = await CentreAssetManagementStub.GetCategoryHash.CallAsync(new StringValue{Value = "token_lock"}),
+                Amount = 100,
+                HolderId = HolderId,
+                UserToken = "user1"
+            });
+            
+            var userChargingAddress2 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new AssetMoveDto
+            {
+                Amount = 100,
+                HolderId = HolderId,
+                UserToken = "user1"
+            });
+            
+            userChargingAddress1.ShouldNotBe(userChargingAddress2);
+
+            await TokenContractStub.Transfer.SendAsync(new TransferInput
+            {
+                Amount = 10_00000000,
+                Symbol = "ELF",
+                To = userChargingAddress1
+            });
+        }
+
+        [Fact]
+        public async Task MoveAssetToMainAddressTest()
+        {
+            
         }
 
         [Fact]
@@ -344,7 +384,7 @@ namespace AElf.Contracts.CentreAssetManagement
         }
 
 
-        public Address GetAddress(int index)
+        private Address GetAddress(int index)
         {
             return Address.FromPublicKey(SampleAccount.Accounts[index].KeyPair.PublicKey);
         }

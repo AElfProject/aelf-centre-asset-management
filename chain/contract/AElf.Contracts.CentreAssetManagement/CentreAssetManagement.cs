@@ -86,32 +86,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
             return new Empty();
         }
-
-        private ManagementAddress GetManagementAddressFromHolderInfo(HolderInfo holderInfo)
-        {
-            ManagementAddress managementAddress;
-            Assert(
-                holderInfo.ManagementAddresses.TryGetValue(Context.Sender.Value.ToBase64(), out managementAddress),
-                "Sender is not registered as management address in the holder");
-
-            return managementAddress;
-        }
-
-        private void CheckManagementAddressPermission(HolderInfo holderInfo)
-        {
-            GetManagementAddressFromHolderInfo(holderInfo);
-        }
-
-        private ManagementAddress CheckMoveFromMainPermission(HolderInfo holderInfo, long amount)
-        {
-            var managementAddress = GetManagementAddressFromHolderInfo(holderInfo);
-
-            Assert(managementAddress.Amount >= amount,
-                "current management address can not move this asset, more amount required");
-
-            return managementAddress;
-        }
-
+        
         public override AssetMoveReturnDto MoveAssetToMainAddress(AssetMoveDto input)
         {
             var holderInfo = GetHolderInfo(input.HolderId);
@@ -366,6 +341,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 SettingsEffectiveTime = input.SettingsEffectiveTime,
                 UpdatedDate = Context.CurrentBlockTime
             };
+            ValidateUpdatingHolderInfo(holderInfo.UpdatingInfo);
             State.HashToHolderInfoMap[input.HolderId] = holderInfo;
             return new Empty();
         }
@@ -500,12 +476,48 @@ namespace AElf.Contracts.CentreAssetManagement
         private void ValidateHolderInfo(HolderInfo holderInfo)
         {
             Assert(holderInfo.OwnerAddress != null, "Owner address cannot be null.");
-            Assert(holderInfo.ShutdownAddress != null, "Owner address cannot be null.");
+            Assert(holderInfo.ShutdownAddress != null, "Shutdown address cannot be null.");
             
             Assert(holderInfo.ManagementAddresses.Values.All(managementAddress =>
                 holderInfo.ManagementAddresses.Values.Count(m =>
                     m.Amount >= managementAddress.ManagementAddressesLimitAmount) >=
                 managementAddress.ManagementAddressesInTotal), "Invalid management address.");
+        }
+        
+        private void ValidateUpdatingHolderInfo(HolderUpdatingInfo holderInfo)
+        {
+            Assert(holderInfo.OwnerAddress != null, "Owner address cannot be null.");
+            Assert(holderInfo.ShutdownAddress != null, "Shutdown address cannot be null.");
+            
+            Assert(holderInfo.ManagementAddresses.All(managementAddress =>
+                holderInfo.ManagementAddresses.Count(m =>
+                    m.Amount >= managementAddress.ManagementAddressesLimitAmount) >=
+                managementAddress.ManagementAddressesInTotal), "Invalid management address.");
+        }
+        
+        private ManagementAddress GetManagementAddressFromHolderInfo(HolderInfo holderInfo)
+        {
+            ManagementAddress managementAddress;
+            Assert(
+                holderInfo.ManagementAddresses.TryGetValue(Context.Sender.Value.ToBase64(), out managementAddress),
+                "Sender is not registered as management address in the holder");
+
+            return managementAddress;
+        }
+
+        private void CheckManagementAddressPermission(HolderInfo holderInfo)
+        {
+            GetManagementAddressFromHolderInfo(holderInfo);
+        }
+
+        private ManagementAddress CheckMoveFromMainPermission(HolderInfo holderInfo, long amount)
+        {
+            var managementAddress = GetManagementAddressFromHolderInfo(holderInfo);
+
+            Assert(managementAddress.Amount >= amount,
+                "current management address can not move this asset, more amount required");
+
+            return managementAddress;
         }
     }
 }
