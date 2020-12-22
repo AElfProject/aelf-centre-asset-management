@@ -81,7 +81,7 @@ service CentreAssetManagement {
 
     }
 
-    rpc GetVirtualAddress (AssetMoveDto) returns (aelf.Address) {
+    rpc GetVirtualAddress (VirtualAddressCalculationDto) returns (aelf.Address) {
         option (aelf.is_view) = true;
     }
 
@@ -115,7 +115,6 @@ message WithdrawInfo {
     repeated aelf.Address approved_addresses = 5;
     int64 management_addresses_limit_amount = 6;
     google.protobuf.Timestamp added_time = 7;
-
 }
 
 message ContractCallWhiteList {
@@ -220,6 +219,12 @@ message AssetMoveDto {
     aelf.Hash address_category_hash = 4;
 }
 
+message VirtualAddressCalculationDto {
+    aelf.Hash holder_id = 1;
+    string user_token = 2;
+    aelf.Hash address_category_hash = 3;
+}
+
 message AssetMoveReturnDto {
     bool success = 1;
 }
@@ -237,6 +242,7 @@ message WithdrawRequestDto {
     int64 amount = 2;
     aelf.Hash holder_id = 3;
 }
+
 message WithdrawRequestReturnDto {
     aelf.Hash id = 1;
 }
@@ -286,8 +292,49 @@ message HolderCreated{
 
 message WithdrawRequested{
     option (aelf.is_event) = true;
-    aelf.Hash holder_id = 1;
-    int64 amount = 2;
-    aelf.Address reqeust_address = 3;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Hash withdraw_id = 2;
+    int64 amount = 3;
+    aelf.Address request_address = 4;
+    aelf.Address withdraw_address = 5;
+}
+
+message WithdrawReleased{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Hash withdraw_id = 2 [(aelf.is_indexed) = true];
+    int64 amount = 3;
     aelf.Address withdraw_address = 4;
+}
+
+message WithdrawCanceled{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Hash withdraw_id = 2 [(aelf.is_indexed) = true];
+    int64 amount = 3;
+    aelf.Address withdraw_address = 4;
+}
+
+message WithdrawExpired{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Hash withdraw_id = 2 [(aelf.is_indexed) = true];
+    int64 amount = 3;
+    aelf.Address withdraw_address = 4;
+}
+
+message HolderUpdateRequested{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Address owner_address = 2;
+    int32 settings_effective_time = 3;
+    aelf.Address shutdown_address = 4;
+}
+
+message HolderUpdateApproved{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Address owner_address = 2;
+    int32 settings_effective_time = 3;
+    aelf.Address shutdown_address = 4;
 }

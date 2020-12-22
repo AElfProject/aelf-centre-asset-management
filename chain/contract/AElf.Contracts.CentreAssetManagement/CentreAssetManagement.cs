@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp;
@@ -95,7 +96,11 @@ namespace AElf.Contracts.CentreAssetManagement
 
             var mainAddress = Context.ConvertVirtualAddressToContractAddress(input.HolderId);
 
-            var virtualUserAddress = GetVirtualUserAddress(input);
+            var virtualUserAddress = GetVirtualUserAddress(new VirtualAddressCalculationDto{
+                AddressCategoryHash = input.AddressCategoryHash,
+                HolderId = input.HolderId,
+                UserToken = input.UserToken
+            });
 
             var tokenInput = new TransferInput()
             {
@@ -112,13 +117,7 @@ namespace AElf.Contracts.CentreAssetManagement
             return result;
         }
 
-        [View]
-        public override Address GetVirtualAddress(AssetMoveDto input)
-        {
-            return Context.ConvertVirtualAddressToContractAddress(GetVirtualUserAddress(input));
-        }
-
-        private Hash GetVirtualUserAddress(AssetMoveDto input)
+        private Hash GetVirtualUserAddress(VirtualAddressCalculationDto input)
         {
             var virtualUserAddress = GetVirtualUserAddress(input.HolderId, input.UserToken, input.AddressCategoryHash);
 
@@ -146,9 +145,13 @@ namespace AElf.Contracts.CentreAssetManagement
 
             CheckMoveFromMainPermission(holderInfo, input.Amount);
 
-            var virtualUserAddress = GetVirtualUserAddress(input);
+            var virtualUserAddress = GetVirtualUserAddress(new VirtualAddressCalculationDto{
+                AddressCategoryHash = input.AddressCategoryHash,
+                HolderId = input.HolderId,
+                UserToken = input.UserToken
+            });
 
-            var tokenInput = new TransferInput()
+            var tokenInput = new TransferInput
             {
                 To = Context.ConvertVirtualAddressToContractAddress(virtualUserAddress),
                 Amount = input.Amount,
@@ -158,10 +161,7 @@ namespace AElf.Contracts.CentreAssetManagement
             Context.SendVirtualInline(input.HolderId, State.TokenContract.Value,
                 nameof(State.TokenContract.Transfer), tokenInput);
 
-
-            AssetMoveReturnDto result = new AssetMoveReturnDto();
-
-            result.Success = true;
+            AssetMoveReturnDto result = new AssetMoveReturnDto {Success = true};
 
             return result;
         }
@@ -177,11 +177,9 @@ namespace AElf.Contracts.CentreAssetManagement
             var managementAddress = CheckMoveFromMainPermission(holderInfo, input.Amount);
 
             Assert(managementAddress.ManagementAddressesInTotal > 0, "Current key cannot make withdraw request.");
-
-
+            
             var withdrawId = HashHelper.ConcatAndCompute(Context.TransactionId, Context.PreviousBlockHash);
-
-
+            
             Assert(State.Withdraws[withdrawId] == null, "Withdraw already exists.");
 
             State.Withdraws[withdrawId] = new WithdrawInfo()
@@ -194,16 +192,17 @@ namespace AElf.Contracts.CentreAssetManagement
                 ManagementAddressesLimitAmount = managementAddress.ManagementAddressesLimitAmount,
                 AddedTime = Context.CurrentBlockTime
             };
-            WithdrawRequestReturnDto result = new WithdrawRequestReturnDto();
+            
+            WithdrawRequestReturnDto result = new WithdrawRequestReturnDto {Id = withdrawId};
 
-            result.Id = withdrawId;
 
             Context.Fire(new WithdrawRequested
             {
                 Amount = input.Amount,
                 HolderId = input.HolderId,
-                ReqeustAddress = Context.Sender,
-                WithdrawAddress = input.Address
+                RequestAddress = Context.Sender,
+                WithdrawAddress = input.Address,
+                WithdrawId = withdrawId
             });
 
             return result;
@@ -233,6 +232,15 @@ namespace AElf.Contracts.CentreAssetManagement
             {
                 status = WithdrawApproveReturnDto.Types.Status.Expired;
                 State.Withdraws.Remove(input.Id);
+                
+                Context.Fire(new WithdrawExpired
+                {
+                    Amount = input.Amount,
+                    HolderId = withdraw.HolderId,
+                    WithdrawAddress = input.Address,
+                    WithdrawId = input.Id
+                });
+                
                 return new WithdrawApproveReturnDto()
                 {
                     ApprovedAddresses = withdraw.ApprovedAddresses.Count,
@@ -257,6 +265,14 @@ namespace AElf.Contracts.CentreAssetManagement
                 };
                 Context.SendVirtualInline(withdraw.HolderId, State.TokenContract.Value,
                     nameof(State.TokenContract.Transfer), tokenInput);
+                
+                Context.Fire(new WithdrawReleased()
+                {
+                    Amount = input.Amount,
+                    HolderId = withdraw.HolderId,
+                    WithdrawAddress = input.Address,
+                    WithdrawId = input.Id
+                });
 
                 State.Withdraws.Remove(input.Id);
                 status = WithdrawApproveReturnDto.Types.Status.Approved;
@@ -282,6 +298,14 @@ namespace AElf.Contracts.CentreAssetManagement
                 {
                     Assert(input.HolderId == withdraw.HolderId);
                     State.Withdraws.Remove(withdrawId);
+                    
+                    Context.Fire(new WithdrawCanceled()
+                    {
+                        Amount = withdraw.Amount,
+                        HolderId = withdraw.HolderId,
+                        WithdrawId = withdrawId,
+                        WithdrawAddress = withdraw.Address,
+                    });
                 }
             }
 
@@ -340,8 +364,17 @@ namespace AElf.Contracts.CentreAssetManagement
                 SettingsEffectiveTime = input.SettingsEffectiveTime,
                 UpdatedDate = Context.CurrentBlockTime
             };
+            
             ValidateUpdatingHolderInfo(holderInfo.UpdatingInfo);
             State.HashToHolderInfoMap[input.HolderId] = holderInfo;
+            
+            Context.Fire(new HolderUpdateRequested
+            {
+                HolderId = input.HolderId,
+                OwnerAddress = input.OwnerAddress,
+                ShutdownAddress = input.ShutdownAddress,
+                SettingsEffectiveTime = input.SettingsEffectiveTime
+            });
             return new Empty();
         }
 
@@ -364,12 +397,10 @@ namespace AElf.Contracts.CentreAssetManagement
 
             Assert(holderInfo.OwnerAddress == Context.Sender, "No permission.");
 
-            Assert(Context.CurrentBlockTime >= holderInfo.UpdatingInfo.UpdatedDate +
-                new Duration() {Seconds = holderInfo.SettingsEffectiveTime}, "Effective time not arrived.");
-
-
             var updateInfo = holderInfo.UpdatingInfo;
             Assert(updateInfo != null, "Updating info not found.");
+            Assert(Context.CurrentBlockTime >= updateInfo.UpdatedDate +
+                new Duration() {Seconds = holderInfo.SettingsEffectiveTime}, "Effective time not arrived.");
 
             holderInfo.UpdatingInfo = null;
 
@@ -386,6 +417,13 @@ namespace AElf.Contracts.CentreAssetManagement
 
             ValidateHolderInfo(holderInfo);
             State.HashToHolderInfoMap[input.HolderId] = holderInfo;
+            
+            Context.Fire(new HolderUpdateApproved
+            {
+                HolderId = input.HolderId,
+                OwnerAddress = holderInfo.OwnerAddress,
+                ShutdownAddress = holderInfo.ShutdownAddress
+            });
             return new Empty();
         }
 
@@ -466,6 +504,12 @@ namespace AElf.Contracts.CentreAssetManagement
             Assert(holderInfo != null, "Holder is not initialized.");
             return holderInfo;
         }
+        
+        [View]
+        public override Address GetVirtualAddress(VirtualAddressCalculationDto input)
+        {
+            return Context.ConvertVirtualAddressToContractAddress(GetVirtualUserAddress(input));
+        }
 
         private Hash CalculateCategoryHash(StringValue category)
         {
@@ -474,22 +518,24 @@ namespace AElf.Contracts.CentreAssetManagement
 
         private void ValidateHolderInfo(HolderInfo holderInfo)
         {
-            Assert(holderInfo.OwnerAddress != null, "Owner address cannot be null.");
-            Assert(holderInfo.ShutdownAddress != null, "Shutdown address cannot be null.");
-            
-            Assert(holderInfo.ManagementAddresses.Values.All(managementAddress =>
-                holderInfo.ManagementAddresses.Values.Count(m =>
-                    m.Amount >= managementAddress.ManagementAddressesLimitAmount) >=
-                managementAddress.ManagementAddressesInTotal), "Invalid management address.");
+            ValidateHolderInfo(holderInfo.OwnerAddress, holderInfo.ShutdownAddress,
+                holderInfo.ManagementAddresses.Values.ToList());
         }
         
         private void ValidateUpdatingHolderInfo(HolderUpdatingInfo holderInfo)
         {
-            Assert(holderInfo.OwnerAddress != null, "Owner address cannot be null.");
-            Assert(holderInfo.ShutdownAddress != null, "Shutdown address cannot be null.");
+            ValidateHolderInfo(holderInfo.OwnerAddress, holderInfo.ShutdownAddress, holderInfo.ManagementAddresses);
+        }
+        
+        private void ValidateHolderInfo(Address owner, Address shutdown, IList<ManagementAddress> managementAddresses)
+        {
+            Assert(owner != null, "Owner address cannot be null.");
+            Assert(shutdown != null, "Shutdown address cannot be null.");
             
-            Assert(holderInfo.ManagementAddresses.All(managementAddress =>
-                holderInfo.ManagementAddresses.Count(m =>
+            var addressList = managementAddresses.Select(ma => ma.Address).ToList();
+            Assert(addressList.Count == addressList.Distinct().Count(), "Duplicate management addresses.");
+            Assert(managementAddresses.All(managementAddress =>
+                managementAddresses.Count(m =>
                     m.Amount >= managementAddress.ManagementAddressesLimitAmount) >=
                 managementAddress.ManagementAddressesInTotal), "Invalid management address.");
         }
@@ -499,7 +545,7 @@ namespace AElf.Contracts.CentreAssetManagement
             ManagementAddress managementAddress;
             Assert(
                 holderInfo.ManagementAddresses.TryGetValue(Context.Sender.Value.ToBase64(), out managementAddress),
-                "Sender is not registered as management address in the holder");
+                "Sender is not registered as management address in the holder.");
 
             return managementAddress;
         }

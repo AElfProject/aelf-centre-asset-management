@@ -205,7 +205,7 @@ namespace AElf.Contracts.CentreAssetManagement
                                 Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
                                 Amount = 100,
                                 ManagementAddressesLimitAmount = 10,
-                                ManagementAddressesInTotal = 2
+                                ManagementAddressesInTotal = 1
                             }
                         },
                         OwnerAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
@@ -220,35 +220,94 @@ namespace AElf.Contracts.CentreAssetManagement
         public async Task UserChargingTest()
         {
             InitializeContracts();
-            var userChargingAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new AssetMoveDto
+            var userChargingAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new VirtualAddressCalculationDto
             {
                 AddressCategoryHash = await CentreAssetManagementStub.GetCategoryHash.CallAsync(new StringValue{Value = "token_lock"}),
-                Amount = 100,
                 HolderId = HolderId,
                 UserToken = "user1"
             });
             
-            var userChargingAddress2 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new AssetMoveDto
+            var userChargingAddress2 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new VirtualAddressCalculationDto
             {
-                Amount = 100,
                 HolderId = HolderId,
                 UserToken = "user1"
             });
             
             userChargingAddress1.ShouldNotBe(userChargingAddress2);
+        }
 
+        [Fact]
+        public async Task MoveAssetToMainAddressTest()
+        {
+            InitializeContracts();
+            var userChargingAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(
+                new VirtualAddressCalculationDto
+                {
+                    AddressCategoryHash =
+                        await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                            new StringValue {Value = "token_lock"}),
+                    HolderId = HolderId,
+                    UserToken = "user1"
+                });
+            
             await TokenContractStub.Transfer.SendAsync(new TransferInput
             {
                 Amount = 10_00000000,
                 Symbol = "ELF",
                 To = userChargingAddress1
             });
-        }
 
-        [Fact]
-        public async Task MoveAssetToMainAddressTest()
-        {
             
+            var centreAssetManagementStub1 = GetCentreAssetManagementStub(SampleAccount.Accounts[5].KeyPair);
+            
+            //move elf token to main address
+            {
+                var moveFromUserExchangeDepositAddress1ToMainAddressResult =
+                    await centreAssetManagementStub1.MoveAssetToMainAddress.SendWithExceptionAsync(new AssetMoveDto
+                    {
+                        AddressCategoryHash =
+                            await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                                new StringValue {Value = "token_lock"}),
+                        HolderId = HolderId,
+                        UserToken = "user1",
+                        Amount = 1_00000000
+                    });
+                moveFromUserExchangeDepositAddress1ToMainAddressResult.TransactionResult.Error.ShouldContain(
+                    "Sender is not registered as management address in the holder");
+            }
+            
+            {
+                var moveFromUserExchangeDepositAddress1ToMainAddressResult =
+                    await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(new AssetMoveDto
+                    {
+                        AddressCategoryHash =
+                            await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                                new StringValue {Value = "token_lock"}),
+                        HolderId = HolderId,
+                        UserToken = "user1",
+                        Amount = 1_00000000
+                    });
+
+                
+                var amountInChargingAddress = await TokenContractStub.GetBalance.CallAsync(new GetBalanceInput()
+                {
+                    Symbol = "ELF",
+                    Owner = userChargingAddress1
+                });
+                
+                amountInChargingAddress.Balance.ShouldBe(9_00000000);
+
+                var holder = await CentreAssetManagementStub.GetHolderInfo.CallAsync(HolderId);
+                var holderMainAddress = holder.MainAddress;
+
+                var amountInMainAddress = await TokenContractStub.GetBalance.CallAsync(new GetBalanceInput()
+                {
+                    Symbol = "ELF",
+                    Owner = holderMainAddress
+                });
+                
+                amountInMainAddress.Balance.ShouldBe(1_00000000);
+            }
         }
 
         [Fact]
@@ -270,7 +329,11 @@ namespace AElf.Contracts.CentreAssetManagement
             };
 
             var userExchangeDepositAddress1 =
-                await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveFromVirtualToMainDto1);
+                await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new VirtualAddressCalculationDto
+                {
+                    UserToken = "UserToken1",
+                    HolderId = HolderId
+                });
 
             await TokenContractStub.Transfer.SendAsync(new TransferInput()
             {
@@ -306,7 +369,12 @@ namespace AElf.Contracts.CentreAssetManagement
 
 
             var userVoteAddress1 =
-                await CentreAssetManagementStub.GetVirtualAddress.CallAsync(assetMoveFromMainToVirtualTokenLockDto1);
+                await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new VirtualAddressCalculationDto
+                {
+                    UserToken = "UserToken1",
+                    HolderId = HolderId,
+                    AddressCategoryHash = HashHelper.ComputeFrom("token_lock")
+                });
 
             await CheckBalanceAsync(userVoteAddress1, 5_00000000);
 
