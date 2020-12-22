@@ -3,6 +3,7 @@ using AElf.Contracts.MultiToken;
 using AElf.ContractTestKit;
 using AElf.Types;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Shouldly;
 using Xunit;
 
@@ -10,6 +11,114 @@ namespace AElf.Contracts.CentreAssetManagement
 {
     public class CentreAssetManagementTest : CentreAssetManagementTestBase
     {
+        [Fact]
+        public async Task InitializeTest()
+        {
+            DeployContracts();
+
+            {
+                var initializeResult = await CentreAssetManagementStub.Initialize.SendWithExceptionAsync(
+                    new InitializeDto
+                    {
+                        CategoryToContactCallWhiteListsMap =
+                        {
+                            {
+                                "token_lock", new ContractCallWhiteLists()
+                                {
+                                    List =
+                                    {
+                                        new ContractCallWhiteList()
+                                        {
+                                            Address = TokenContractAddress,
+                                            MethodNames = {"Lock", "Unlock", "Transfer"}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+                
+                initializeResult.TransactionResult.Error.ShouldContain("Contract owner cannot be null.");
+            }
+            
+            await CentreAssetManagementStub.Initialize.SendAsync(
+                new InitializeDto()
+                {
+                    Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    CategoryToContactCallWhiteListsMap =
+                    {
+                        {
+                            "token_lock", new ContractCallWhiteLists()
+                            {
+                                List =
+                                {
+                                    new ContractCallWhiteList()
+                                    {
+                                        Address = TokenContractAddress,
+                                        MethodNames = {"Lock", "Unlock", "Transfer"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+            
+            {
+                var initializeResult = await CentreAssetManagementStub.Initialize.SendWithExceptionAsync(
+                    new InitializeDto()
+                    {
+                        Owner = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        CategoryToContactCallWhiteListsMap =
+                        {
+                            {
+                                "token_lock", new ContractCallWhiteLists()
+                                {
+                                    List =
+                                    {
+                                        new ContractCallWhiteList()
+                                        {
+                                            Address = TokenContractAddress,
+                                            MethodNames = {"Lock", "Unlock", "Transfer"}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+                
+                initializeResult.TransactionResult.Error.ShouldContain("Already initialized.");
+            }
+        }
+
+        [Fact]
+        public async Task GetCentreAssetManagementTest()
+        {
+            InitializeContracts();
+            var centreAssetManagementInfo =
+                await CentreAssetManagementStub.GetCentreAssetManagementInfo.CallAsync(new Empty());
+            centreAssetManagementInfo.Owner.ShouldBe(Address.FromPublicKey(DefaultKeyPair.PublicKey));
+            centreAssetManagementInfo.Categories.Count.ShouldBe(1);
+            centreAssetManagementInfo.Categories.ShouldContain("token_lock");
+        }
+        
+        [Fact]
+        public async Task GetHolderInfoTest()
+        {
+            InitializeContracts();
+            var holder =
+                await CentreAssetManagementStub.GetHolderInfo.CallAsync(HolderId);
+            holder.Symbol.ShouldBe("ELF");
+            holder.IsShutdown.ShouldBeFalse();
+            holder.ManagementAddresses.Count.ShouldBe(3);
+            holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey).Value.ToBase64());
+            holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey).Value.ToBase64());
+            holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey).Value.ToBase64());
+            // holder.OwnerAddress.ShouldBe();
+        }
+        
         [Fact]
         public async Task CreateHolderTest()
         {
@@ -37,7 +146,9 @@ namespace AElf.Contracts.CentreAssetManagement
                                 ManagementAddressesLimitAmount = 10,
                                 ManagementAddressesInTotal = 2
                             }
-                        }
+                        },
+                        OwnerAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        ShutdownAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
                     });
 
                 createHolderResult.TransactionResult.Error.ShouldContain("Invalid management address.");
@@ -64,7 +175,9 @@ namespace AElf.Contracts.CentreAssetManagement
                                 ManagementAddressesLimitAmount = 10,
                                 ManagementAddressesInTotal = 2
                             }
-                        }
+                        },
+                        OwnerAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        ShutdownAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
                     });
             }
             
@@ -89,10 +202,12 @@ namespace AElf.Contracts.CentreAssetManagement
                                 ManagementAddressesLimitAmount = 10,
                                 ManagementAddressesInTotal = 2
                             }
-                        }
+                        },
+                        OwnerAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        ShutdownAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
                     });
 
-                createHolderResult.TransactionResult.Error.ShouldContain("the same management address exists");
+                createHolderResult.TransactionResult.Error.ShouldContain("The same management address exists");
             }
         }
 

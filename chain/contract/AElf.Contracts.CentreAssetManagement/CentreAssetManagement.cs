@@ -17,36 +17,32 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override HolderCreateReturnDto CreateHolder(HolderCreateDto input)
         {
-            Assert(!string.IsNullOrWhiteSpace(input.Symbol), "symbol cannot be null or white space");
+            Assert(!string.IsNullOrWhiteSpace(input.Symbol), "Symbol cannot be null or white space.");
 
             HolderInfo holderInfo = new HolderInfo();
 
             var holderId = HashHelper.ConcatAndCompute(Context.TransactionId, Context.PreviousBlockHash);
 
-            Assert(State.HashToHolderInfoMap[holderId] == null, "already have a holder");
+            Assert(State.HashToHolderInfoMap[holderId] == null, "Holder already exists.");
 
             holderInfo.MainAddress = Context.ConvertVirtualAddressToContractAddress(holderId);
             foreach (var managementAddress in input.ManagementAddresses)
             {
-                Assert(
-                    input.ManagementAddresses.Count(m =>
-                        m.Amount >= managementAddress.ManagementAddressesLimitAmount) >=
-                    managementAddress.ManagementAddressesInTotal, "invalid management address.");
-                Assert(!holderInfo.ManagementAddresses.TryGetValue(managementAddress.Address.Value.ToBase64(), out _), "the same management address exists");
+                Assert(!holderInfo.ManagementAddresses.TryGetValue(managementAddress.Address.Value.ToBase64(), out _), "The same management address exists.");
                 holderInfo.ManagementAddresses[managementAddress.Address.Value.ToBase64()] = managementAddress;
             }
-
+            
             holderInfo.OwnerAddress = input.OwnerAddress;
             holderInfo.ShutdownAddress = input.ShutdownAddress;
             holderInfo.SettingsEffectiveTime = input.SettingsEffectiveTime;
 
             var tokenInfo = State.TokenContract.GetTokenInfo.Call(new GetTokenInfoInput() {Symbol = input.Symbol});
 
-            Assert(tokenInfo.Symbol == input.Symbol, "symbol is not registered in token contract");
+            Assert(tokenInfo.Symbol == input.Symbol, "Symbol is not registered in token contract.");
 
             holderInfo.Symbol = input.Symbol;
 
-
+            ValidateHolderInfo(holderInfo);
             State.HashToHolderInfoMap[holderId] = holderInfo;
 
             var result = new HolderCreateReturnDto()
@@ -67,7 +63,8 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override Empty Initialize(InitializeDto input)
         {
-            Assert(!State.Initialized.Value, "already initialized.");
+            Assert(!State.Initialized.Value, "Already initialized.");
+            Assert(input.Owner != null, "Contract owner cannot be null.");
 
             State.TokenContract.Value =
                 Context.GetContractAddressByName(SmartContractConstants.TokenContractSystemName);
@@ -90,25 +87,12 @@ namespace AElf.Contracts.CentreAssetManagement
             return new Empty();
         }
 
-
-        [View]
-        public override HolderInfo GetHolderInfo(Hash holderId)
-        {
-            Assert(holderId?.Value.IsEmpty == false, "holder id required");
-
-            var holderInfo = State.HashToHolderInfoMap[holderId];
-            Assert(holderInfo != null, "holder is not initialized");
-
-            return holderInfo;
-        }
-
-
         private ManagementAddress GetManagementAddressFromHolderInfo(HolderInfo holderInfo)
         {
             ManagementAddress managementAddress;
             Assert(
                 holderInfo.ManagementAddresses.TryGetValue(Context.Sender.Value.ToBase64(), out managementAddress),
-                "sender is not registered as management address in the holder");
+                "Sender is not registered as management address in the holder");
 
             return managementAddress;
         }
@@ -363,6 +347,7 @@ namespace AElf.Contracts.CentreAssetManagement
             holderInfo.ManagementAddresses.Clear();
             holderInfo.UpdatingInfo = null;
             holderInfo.OwnerAddress = input.HolderOwner;
+            ValidateHolderInfo(holderInfo);
             State.HashToHolderInfoMap[input.HolderId] = holderInfo;
             return new Empty();
         }
@@ -402,13 +387,14 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             var holderInfo = GetHolderInfo(input.HolderId);
 
-            Assert(holderInfo.OwnerAddress == Context.Sender, "no permission");
+            Assert(holderInfo.OwnerAddress == Context.Sender, "No permission.");
 
             Assert(Context.CurrentBlockTime >= holderInfo.UpdatingInfo.UpdatedDate +
-                new Duration() {Seconds = holderInfo.SettingsEffectiveTime}, "effective time not arrives");
+                new Duration() {Seconds = holderInfo.SettingsEffectiveTime}, "Effective time not arrived.");
 
 
             var updateInfo = holderInfo.UpdatingInfo;
+            Assert(updateInfo != null, "Updating info not found.");
 
             holderInfo.UpdatingInfo = null;
 
@@ -423,6 +409,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 holderInfo.ManagementAddresses[managementAddress.Address.Value.ToBase64()] = managementAddress;
             }
 
+            ValidateHolderInfo(holderInfo);
             State.HashToHolderInfoMap[input.HolderId] = holderInfo;
             return new Empty();
         }
@@ -494,10 +481,31 @@ namespace AElf.Contracts.CentreAssetManagement
         {
             return State.CentreAssetManagementInfo.Value;
         }
+        
+        [View]
+        public override HolderInfo GetHolderInfo(Hash holderId)
+        {
+            Assert(holderId?.Value.IsEmpty == false, "Holder id required.");
+
+            var holderInfo = State.HashToHolderInfoMap[holderId];
+            Assert(holderInfo != null, "Holder is not initialized.");
+            return holderInfo;
+        }
 
         private Hash CalculateCategoryHash(StringValue category)
         {
             return HashHelper.ComputeFrom(category.Value);
+        }
+
+        private void ValidateHolderInfo(HolderInfo holderInfo)
+        {
+            Assert(holderInfo.OwnerAddress != null, "Owner address cannot be null.");
+            Assert(holderInfo.ShutdownAddress != null, "Owner address cannot be null.");
+            
+            Assert(holderInfo.ManagementAddresses.Values.All(managementAddress =>
+                holderInfo.ManagementAddresses.Values.Count(m =>
+                    m.Amount >= managementAddress.ManagementAddressesLimitAmount) >=
+                managementAddress.ManagementAddressesInTotal), "Invalid management address.");
         }
     }
 }
