@@ -1,5 +1,6 @@
 using AElf.Contracts.MultiToken;
 using AElf.Sdk.CSharp.State;
+using AElf.Standards.ACS1;
 using AElf.Types;
 
 namespace AElf.Contracts.CentreAssetManagement
@@ -24,5 +25,9 @@ namespace AElf.Contracts.CentreAssetManagement
         public MappedState<Hash, HolderInfo> HashToHolderInfoMap { get; set; }
 
         public MappedState<Hash, WithdrawInfo> Withdraws { get; set; }
+        
+        public SingletonState<AuthorityInfo> MethodFeeController { get; set; }
+        
+        public MappedState<string, MethodFees> TransactionFees { get; set; }
     }
 }

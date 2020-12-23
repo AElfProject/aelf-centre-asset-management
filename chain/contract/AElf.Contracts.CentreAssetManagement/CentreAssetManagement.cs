@@ -12,7 +12,7 @@ namespace AElf.Contracts.CentreAssetManagement
     /// folder.
     /// Notice that it inherits from the protobuf generated code. 
     /// </summary>
-    public class CentreAssetManagement : CentreAssetManagementContainer.CentreAssetManagementBase
+    public partial class CentreAssetManagement : CentreAssetManagementContainer.CentreAssetManagementBase
     {
         private const long WITHDRAW_EXPIRED_SECONDS = 86400;
 

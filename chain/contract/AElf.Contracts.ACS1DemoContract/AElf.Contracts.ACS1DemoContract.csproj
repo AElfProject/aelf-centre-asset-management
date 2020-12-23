@@ -9,10 +9,14 @@
         <ContractBase Include="..\..\protobuf\acs1.proto">
             <Link>Protobuf\Proto\base\acs1.proto</Link>
         </ContractBase>
-        <ContractBase Include="..\..\protobuf\authority_info.proto">
-            <Link>Protobuf\Proto\authority_info.proto</Link>
-        </ContractBase>
     </ItemGroup>
+
+    <ItemGroup>
+        <CommonMessage Include="..\..\protobuf\authority_info.proto">
+            <Link>Protobuf\Proto\authority_info.proto</Link>
+        </CommonMessage>
+    </ItemGroup>
+    
     <ItemGroup>
         <ContractCode Include="..\..\protobuf\acs1_demo_contract.proto">
             <Link>Protobuf\Proto\acs1_demo_contract.proto</Link>
