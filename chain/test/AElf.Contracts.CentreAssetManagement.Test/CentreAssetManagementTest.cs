@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
 using AElf.ContractTestKit;
@@ -38,7 +39,7 @@ namespace AElf.Contracts.CentreAssetManagement
                         }
                     }
                 );
-                
+
                 initializeResult.TransactionResult.Error.ShouldContain("Contract owner cannot be null.");
             }
 
@@ -64,8 +65,9 @@ namespace AElf.Contracts.CentreAssetManagement
                     }
                 }
             );
-            
-            var cateGoryHash = await CentreAssetManagementStub.GetCategoryHash.CallAsync(new StringValue{Value = "token_lock"});
+
+            var cateGoryHash =
+                await CentreAssetManagementStub.GetCategoryHash.CallAsync(new StringValue {Value = "token_lock"});
             cateGoryHash.ShouldNotBeNull();
 
             {
@@ -91,7 +93,7 @@ namespace AElf.Contracts.CentreAssetManagement
                         }
                     }
                 );
-                
+
                 initializeResult.TransactionResult.Error.ShouldContain("Already initialized.");
             }
         }
@@ -106,7 +108,7 @@ namespace AElf.Contracts.CentreAssetManagement
             centreAssetManagementInfo.Categories.Count.ShouldBe(1);
             centreAssetManagementInfo.Categories.ShouldContain("token_lock");
         }
-        
+
         [Fact]
         public async Task GetHolderInfoTest()
         {
@@ -116,14 +118,17 @@ namespace AElf.Contracts.CentreAssetManagement
             holder.Symbol.ShouldBe("ELF");
             holder.IsShutdown.ShouldBeFalse();
             holder.ManagementAddresses.Count.ShouldBe(3);
-            holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey).Value.ToBase64());
-            holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey).Value.ToBase64());
-            holder.ManagementAddresses.ShouldContainKey(Address.FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey).Value.ToBase64());
+            holder.ManagementAddresses.ShouldContainKey(Address
+                .FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey).Value.ToBase64());
+            holder.ManagementAddresses.ShouldContainKey(Address
+                .FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey).Value.ToBase64());
+            holder.ManagementAddresses.ShouldContainKey(Address
+                .FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey).Value.ToBase64());
             holder.OwnerAddress.ShouldBe(Address.FromPublicKey(DefaultKeyPair.PublicKey));
             holder.MainAddress.ShouldNotBeNull();
             holder.SettingsEffectiveTime.ShouldBe(3600);
         }
-        
+
         [Fact]
         public async Task CreateHolderTest()
         {
@@ -158,9 +163,9 @@ namespace AElf.Contracts.CentreAssetManagement
 
                 createHolderResult.TransactionResult.Error.ShouldContain("Invalid management address.");
             }
-            
+
             {
-                await CentreAssetManagementStub.CreateHolder.SendAsync(
+                var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendAsync(
                     new HolderCreateDto()
                     {
                         Symbol = "ELF",
@@ -184,8 +189,15 @@ namespace AElf.Contracts.CentreAssetManagement
                         OwnerAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
                         ShutdownAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
                     });
+
+                var logEvent =
+                    createHolderResult.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(HolderCreated));
+                var holderCreated = HolderCreated.Parser.ParseFrom(logEvent.NonIndexed);
+                holderCreated.Symbol.ShouldBe("ELF");
+                holderCreated.HolderId.ShouldBe(createHolderResult.Output.Id);
+                holderCreated.OwnerAddress.ShouldBe(Address.FromPublicKey(DefaultKeyPair.PublicKey));
             }
-            
+
             {
                 var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendWithExceptionAsync(
                     new HolderCreateDto()
@@ -220,19 +232,23 @@ namespace AElf.Contracts.CentreAssetManagement
         public async Task UserChargingTest()
         {
             InitializeContracts();
-            var userChargingAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new VirtualAddressCalculationDto
-            {
-                AddressCategoryHash = await CentreAssetManagementStub.GetCategoryHash.CallAsync(new StringValue{Value = "token_lock"}),
-                HolderId = HolderId,
-                UserToken = "user1"
-            });
-            
-            var userChargingAddress2 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(new VirtualAddressCalculationDto
-            {
-                HolderId = HolderId,
-                UserToken = "user1"
-            });
-            
+            var userChargingAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(
+                new VirtualAddressCalculationDto
+                {
+                    AddressCategoryHash =
+                        await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                            new StringValue {Value = "token_lock"}),
+                    HolderId = HolderId,
+                    UserToken = "user1"
+                });
+
+            var userChargingAddress2 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(
+                new VirtualAddressCalculationDto
+                {
+                    HolderId = HolderId,
+                    UserToken = "user1"
+                });
+
             userChargingAddress1.ShouldNotBe(userChargingAddress2);
         }
 
@@ -249,7 +265,7 @@ namespace AElf.Contracts.CentreAssetManagement
                     HolderId = HolderId,
                     UserToken = "user1"
                 });
-            
+
             await TokenContractStub.Transfer.SendAsync(new TransferInput
             {
                 Amount = 10_00000000,
@@ -257,9 +273,9 @@ namespace AElf.Contracts.CentreAssetManagement
                 To = userChargingAddress1
             });
 
-            
+
             var centreAssetManagementStub1 = GetCentreAssetManagementStub(SampleAccount.Accounts[5].KeyPair);
-            
+
             //move elf token to main address
             {
                 var moveFromUserExchangeDepositAddress1ToMainAddressResult =
@@ -273,9 +289,9 @@ namespace AElf.Contracts.CentreAssetManagement
                         Amount = 1_00000000
                     });
                 moveFromUserExchangeDepositAddress1ToMainAddressResult.TransactionResult.Error.ShouldContain(
-                    "Sender is not registered as management address in the holder");
+                    "Sender is not registered as management address in the holder.");
             }
-            
+
             {
                 var moveFromUserExchangeDepositAddress1ToMainAddressResult =
                     await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(new AssetMoveDto
@@ -287,14 +303,22 @@ namespace AElf.Contracts.CentreAssetManagement
                         UserToken = "user1",
                         Amount = 1_00000000
                     });
-
+                var logEvent = moveFromUserExchangeDepositAddress1ToMainAddressResult.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(AssetMovedToMainAddress));
                 
+                
+                var assetMovedFromMainAddress = AssetMovedToMainAddress.Parser.ParseFrom(logEvent.NonIndexed);
+                assetMovedFromMainAddress.Amount.ShouldBe(1_00000000);
+                assetMovedFromMainAddress.From.ShouldBe(userChargingAddress1);
+                
+                var assetMovedFromMainAddressIndexed = AssetMovedFromMainAddress.Parser.ParseFrom(logEvent.Indexed[0]);
+                assetMovedFromMainAddressIndexed.HolderId.ShouldBe(HolderId);
+
                 var amountInChargingAddress = await TokenContractStub.GetBalance.CallAsync(new GetBalanceInput()
                 {
                     Symbol = "ELF",
                     Owner = userChargingAddress1
                 });
-                
+
                 amountInChargingAddress.Balance.ShouldBe(9_00000000);
 
                 var holder = await CentreAssetManagementStub.GetHolderInfo.CallAsync(HolderId);
@@ -305,8 +329,81 @@ namespace AElf.Contracts.CentreAssetManagement
                     Symbol = "ELF",
                     Owner = holderMainAddress
                 });
-                
+
                 amountInMainAddress.Balance.ShouldBe(1_00000000);
+            }
+        }
+
+        [Fact]
+        public async Task MoveAssetFromMainAddressTest()
+        {
+            InitializeContracts();
+            var userChargingAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(
+                new VirtualAddressCalculationDto
+                {
+                    AddressCategoryHash =
+                        await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                            new StringValue {Value = "token_lock"}),
+                    HolderId = HolderId,
+                    UserToken = "user1"
+                });
+
+            await TokenContractStub.Transfer.SendAsync(new TransferInput
+            {
+                Amount = 10000_00000000,
+                Symbol = "ELF",
+                To = userChargingAddress1
+            });
+
+            await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(new AssetMoveDto
+            {
+                AddressCategoryHash =
+                    await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                        new StringValue {Value = "token_lock"}),
+                HolderId = HolderId,
+                UserToken = "user1",
+                Amount = 10000_00000000
+            });
+
+
+            AssetMoveDto assetMoveFromMainToVirtualTokenLockDto = new AssetMoveDto()
+            {
+                Amount = 5000_00000000,
+                UserToken = "user1",
+                HolderId = HolderId,
+                AddressCategoryHash = HashHelper.ComputeFrom("token_lock")
+            };
+
+            {
+                var centreAssetManagementStub = GetCentreAssetManagementStub(SampleAccount.Accounts[1].KeyPair);
+                var moveFromMainToVirtualTokenLockResult =
+                    await centreAssetManagementStub.MoveAssetFromMainAddress.SendWithExceptionAsync(
+                        assetMoveFromMainToVirtualTokenLockDto);
+                moveFromMainToVirtualTokenLockResult.TransactionResult.Error.ShouldContain(
+                    "Current management address can not move this asset.");
+            }
+
+
+            {
+                var centreAssetManagementStub = GetCentreAssetManagementStub(SampleAccount.Accounts[5].KeyPair);
+                var moveFromMainToVirtualTokenLockResult =
+                    await centreAssetManagementStub.MoveAssetFromMainAddress.SendWithExceptionAsync(
+                        assetMoveFromMainToVirtualTokenLockDto);
+                moveFromMainToVirtualTokenLockResult.TransactionResult.Error.ShouldContain(
+                    "Sender is not registered as management address in the holder.");
+            }
+
+            {
+                var moveAssetFromMainAddress = await CentreAssetManagementStub.MoveAssetFromMainAddress.SendAsync(
+                    assetMoveFromMainToVirtualTokenLockDto);
+                var logEvent = moveAssetFromMainAddress.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(AssetMovedFromMainAddress));
+                
+                var assetMovedFromMainAddress = AssetMovedFromMainAddress.Parser.ParseFrom(logEvent.NonIndexed);
+                assetMovedFromMainAddress.Amount.ShouldBe(5000_00000000);
+                assetMovedFromMainAddress.To.ShouldBe(userChargingAddress1);
+                
+                var assetMovedFromMainAddressIndexed = AssetMovedFromMainAddress.Parser.ParseFrom(logEvent.Indexed[0]);
+                assetMovedFromMainAddressIndexed.HolderId.ShouldBe(HolderId);
             }
         }
 

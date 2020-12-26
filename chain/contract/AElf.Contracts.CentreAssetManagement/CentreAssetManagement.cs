@@ -90,17 +90,20 @@ namespace AElf.Contracts.CentreAssetManagement
         
         public override AssetMoveReturnDto MoveAssetToMainAddress(AssetMoveDto input)
         {
+            Assert(input.Amount > 0, "Amount required.");
             var holderInfo = GetHolderInfo(input.HolderId);
 
             CheckManagementAddressPermission(holderInfo);
 
             var mainAddress = Context.ConvertVirtualAddressToContractAddress(input.HolderId);
 
-            var virtualUserAddress = GetVirtualUserAddress(new VirtualAddressCalculationDto{
+            var virtualAddressCalculationDto = new VirtualAddressCalculationDto
+            {
                 AddressCategoryHash = input.AddressCategoryHash,
                 HolderId = input.HolderId,
                 UserToken = input.UserToken
-            });
+            };
+            var virtualUserAddress = GetVirtualUserAddress(virtualAddressCalculationDto);
 
             var tokenInput = new TransferInput()
             {
@@ -111,6 +114,14 @@ namespace AElf.Contracts.CentreAssetManagement
 
             Context.SendVirtualInline(virtualUserAddress, State.TokenContract.Value,
                 nameof(State.TokenContract.Transfer), tokenInput);
+            
+            Context.Fire(new AssetMovedToMainAddress
+            {
+                Amount = input.Amount,
+                HolderId = input.HolderId,
+                From = GetVirtualAddress(virtualAddressCalculationDto),
+                Symbol = holderInfo.Symbol
+            });
 
             AssetMoveReturnDto result = new AssetMoveReturnDto {Success = true};
 
@@ -131,7 +142,7 @@ namespace AElf.Contracts.CentreAssetManagement
             if (category?.Value != null)
             {
                 var map = State.CategoryToContractCallWhiteListsMap[category];
-                Assert(map.List.Count > 0, "No contract call list for this category, maybe not initialized.");
+                Assert(map != null && map.List.Count > 0, "No contract call list for this category, maybe not initialized.");
 
                 virtualUserAddress = HashHelper.XorAndCompute(virtualUserAddress, category);
             }
@@ -141,15 +152,17 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override AssetMoveReturnDto MoveAssetFromMainAddress(AssetMoveDto input)
         {
+            Assert(input.Amount > 0, "Amount required.");
             var holderInfo = GetHolderInfo(input.HolderId);
-
             CheckMoveFromMainPermission(holderInfo, input.Amount);
 
-            var virtualUserAddress = GetVirtualUserAddress(new VirtualAddressCalculationDto{
+            var virtualAddressCalculationDto = new VirtualAddressCalculationDto
+            {
                 AddressCategoryHash = input.AddressCategoryHash,
                 HolderId = input.HolderId,
                 UserToken = input.UserToken
-            });
+            };
+            var virtualUserAddress = GetVirtualUserAddress(virtualAddressCalculationDto);
 
             var tokenInput = new TransferInput
             {
@@ -161,6 +174,14 @@ namespace AElf.Contracts.CentreAssetManagement
             Context.SendVirtualInline(input.HolderId, State.TokenContract.Value,
                 nameof(State.TokenContract.Transfer), tokenInput);
 
+            Context.Fire(new AssetMovedFromMainAddress
+            {
+                Amount = input.Amount,
+                HolderId = input.HolderId,
+                To = GetVirtualAddress(virtualAddressCalculationDto),
+                Symbol = holderInfo.Symbol
+            });
+            
             AssetMoveReturnDto result = new AssetMoveReturnDto {Success = true};
 
             return result;
@@ -168,7 +189,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
         public override WithdrawRequestReturnDto RequestWithdraw(WithdrawRequestDto input)
         {
-            Assert(!input.Address.Value.IsEmpty, "Address required.");
+            Assert(input.Address != null, "Address required.");
             Assert(input.Amount > 0, "Amount required.");
 
 
@@ -181,6 +202,11 @@ namespace AElf.Contracts.CentreAssetManagement
             var withdrawId = HashHelper.ConcatAndCompute(Context.TransactionId, Context.PreviousBlockHash);
             
             Assert(State.Withdraws[withdrawId] == null, "Withdraw already exists.");
+            Assert(State.TokenContract.GetBalance.Call(new GetBalanceInput
+            {
+                Owner = holderInfo.MainAddress,
+                Symbol = holderInfo.Symbol
+            }).Balance >= input.Amount, "Insufficient balance to withdraw.");
 
             State.Withdraws[withdrawId] = new WithdrawInfo()
             {
@@ -560,7 +586,7 @@ namespace AElf.Contracts.CentreAssetManagement
             var managementAddress = GetManagementAddressFromHolderInfo(holderInfo);
 
             Assert(managementAddress.Amount >= amount,
-                "Current management address can not move this asset, more amount required.");
+                "Current management address can not move this asset.");
 
             return managementAddress;
         }

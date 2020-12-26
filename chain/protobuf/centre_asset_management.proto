@@ -165,11 +165,6 @@ message HolderInfo {
     HolderUpdatingInfo updating_info = 8;
 }
 
-// a custom message, used as the return type of the Hello action
-message HelloReturn {
-    string Value = 1;
-}
-
 message CategoryDto {
     string category = 1;
 }
@@ -339,4 +334,20 @@ message HolderUpdateApproved{
     aelf.Address owner_address = 2;
     int32 settings_effective_time = 3;
     aelf.Address shutdown_address = 4;
+}
+
+message AssetMovedToMainAddress{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    int64 amount = 2;
+    aelf.Address from = 3;
+    string symbol = 4;
+}
+
+message AssetMovedFromMainAddress{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    int64 amount = 2;
+    aelf.Address to = 3;
+    string symbol = 4;
 }
