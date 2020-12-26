@@ -460,7 +460,7 @@ namespace AElf.Contracts.CentreAssetManagement
             foreach (var contractCallWhiteLists in input.CategoryToContactCallWhiteListsMap)
             {
                 var categoryHash = CalculateCategoryHash(new StringValue {Value = contractCallWhiteLists.Key});
-                if (State.CategoryToContractCallWhiteListsMap[categoryHash] != null)
+                if (State.CategoryToContractCallWhiteListsMap[categoryHash] == null)
                     centreAssetManagementInfo.Categories.Add(contractCallWhiteLists.Key);
                 State.CategoryToContractCallWhiteListsMap.Set(categoryHash, contractCallWhiteLists.Value);
             }

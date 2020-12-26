@@ -338,23 +338,9 @@ namespace AElf.Contracts.CentreAssetManagement
         public async Task MoveAssetFromMainAddressTest()
         {
             InitializeContracts();
-            var userChargingAddress1 = await CentreAssetManagementStub.GetVirtualAddress.CallAsync(
-                new VirtualAddressCalculationDto
-                {
-                    AddressCategoryHash =
-                        await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                            new StringValue {Value = "token_lock"}),
-                    HolderId = HolderId,
-                    UserToken = "user1"
-                });
-
-            await TokenContractStub.Transfer.SendAsync(new TransferInput
-            {
-                Amount = 10000_00000000,
-                Symbol = "ELF",
-                To = userChargingAddress1
-            });
-
+            var userChargingAddress1 = await GetUserChargingTestAsync();
+            await RechargeAsync(10000_00000000, userChargingAddress1);
+            
             await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(new AssetMoveDto
             {
                 AddressCategoryHash =
@@ -405,6 +391,25 @@ namespace AElf.Contracts.CentreAssetManagement
                 var assetMovedFromMainAddressIndexed = AssetMovedFromMainAddress.Parser.ParseFrom(logEvent.Indexed[0]);
                 assetMovedFromMainAddressIndexed.HolderId.ShouldBe(HolderId);
             }
+        }
+        
+        [Fact]
+        public async Task RequestWithdrawTest()
+        {
+            InitializeContracts();
+            var userChargingAddress1 = await GetUserChargingTestAsync();
+            await RechargeAsync(10000_00000000, userChargingAddress1);
+            
+            // move to main address
+            await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(new AssetMoveDto
+            {
+                AddressCategoryHash =
+                    await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                        new StringValue {Value = "token_lock"}),
+                HolderId = HolderId,
+                UserToken = "user1",
+                Amount = 10000_00000000
+            });
         }
 
         [Fact]
@@ -580,10 +585,33 @@ namespace AElf.Contracts.CentreAssetManagement
 
             //use ShutdownAddress to shutdown
             await GetCentreAssetManagementStub(SampleAccount.Accounts[2].KeyPair).ShutdownHolder
-                .SendAsync(new HolderShutdownDto() {HolderId = holderId});
+                .SendAsync(new HolderShutdownDto {HolderId = holderId});
 
             await CentreAssetManagementStub.RebootHolder.SendAsync(new HolderRebootDto()
                 {HolderOwner = addressOwner, HolderId = holderId});
+        }
+
+        private async Task<Address> GetUserChargingTestAsync()
+        {
+            return await CentreAssetManagementStub.GetVirtualAddress.CallAsync(
+                new VirtualAddressCalculationDto
+                {
+                    AddressCategoryHash =
+                        await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                            new StringValue {Value = "token_lock"}),
+                    HolderId = HolderId,
+                    UserToken = "user1"
+                });
+        }
+        
+        private async Task RechargeAsync(long amount, Address userChargingAddress)
+        {
+            await TokenContractStub.Transfer.SendAsync(new TransferInput
+            {
+                Amount = amount,
+                Symbol = "ELF",
+                To = userChargingAddress
+            });
         }
     }
 }
