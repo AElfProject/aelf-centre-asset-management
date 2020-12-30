@@ -37,7 +37,7 @@ namespace AElf.Contracts.CentreAssetManagement
             holderInfo.ShutdownAddress = input.ShutdownAddress;
             holderInfo.SettingsEffectiveTime = input.SettingsEffectiveTime;
 
-            var tokenInfo = State.TokenContract.GetTokenInfo.Call(new GetTokenInfoInput() {Symbol = input.Symbol});
+            var tokenInfo = State.TokenContract.GetTokenInfo.Call(new GetTokenInfoInput {Symbol = input.Symbol});
 
             Assert(tokenInfo.Symbol == input.Symbol, "Symbol is not registered in token contract.");
 
@@ -250,7 +250,7 @@ namespace AElf.Contracts.CentreAssetManagement
 
 
             Assert(managementAddress.Amount >= withdraw.ManagementAddressesLimitAmount,
-                "Current management address cannot approve, amount limited");
+                "Current management address cannot approve, amount limited.");
 
 
             var duration = Context.CurrentBlockTime - withdraw.AddedTime;
@@ -322,7 +322,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 var withdraw = State.Withdraws[withdrawId];
                 if (withdraw != null)
                 {
-                    Assert(input.HolderId == withdraw.HolderId);
+                    Assert(input.HolderId == withdraw.HolderId, "Holder not matched.");
                     State.Withdraws.Remove(withdrawId);
                     
                     Context.Fire(new WithdrawCanceled()
@@ -426,7 +426,7 @@ namespace AElf.Contracts.CentreAssetManagement
             var updateInfo = holderInfo.UpdatingInfo;
             Assert(updateInfo != null, "Updating info not found.");
             Assert(Context.CurrentBlockTime >= updateInfo.UpdatedDate +
-                new Duration() {Seconds = holderInfo.SettingsEffectiveTime}, "Effective time not arrived.");
+                new Duration {Seconds = holderInfo.SettingsEffectiveTime}, "Effective time not arrived.");
 
             holderInfo.UpdatingInfo = null;
 
@@ -535,6 +535,12 @@ namespace AElf.Contracts.CentreAssetManagement
         public override Address GetVirtualAddress(VirtualAddressCalculationDto input)
         {
             return Context.ConvertVirtualAddressToContractAddress(GetVirtualUserAddress(input));
+        }
+
+        [View]
+        public override WithdrawInfo GetPendingWithdraw(Hash input)
+        {
+            return State.Withdraws[input];
         }
 
         private Hash CalculateCategoryHash(StringValue category)

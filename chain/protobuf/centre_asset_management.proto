@@ -106,6 +106,10 @@ service CentreAssetManagement {
     rpc GetCategoryContractCallAllowance (CategoryDto) returns (CategoryContractCallAllowanceDto) {
         option (aelf.is_view) = true;
     }
+    
+    rpc GetPendingWithdraw (aelf.Hash) returns (WithdrawInfo) {
+        option (aelf.is_view) = true;
+    }
 }
 
 

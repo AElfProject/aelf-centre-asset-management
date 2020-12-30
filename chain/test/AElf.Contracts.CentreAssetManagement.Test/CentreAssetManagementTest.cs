@@ -4,6 +4,7 @@ using AElf.Contracts.MultiToken;
 using AElf.ContractTestKit;
 using AElf.Types;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using Shouldly;
 using Xunit;
@@ -303,13 +304,15 @@ namespace AElf.Contracts.CentreAssetManagement
                         UserToken = "user1",
                         Amount = 1_00000000
                     });
-                var logEvent = moveFromUserExchangeDepositAddress1ToMainAddressResult.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(AssetMovedToMainAddress));
-                
-                
+                var logEvent =
+                    moveFromUserExchangeDepositAddress1ToMainAddressResult.TransactionResult.Logs.FirstOrDefault(l =>
+                        l.Name == nameof(AssetMovedToMainAddress));
+
+
                 var assetMovedFromMainAddress = AssetMovedToMainAddress.Parser.ParseFrom(logEvent.NonIndexed);
                 assetMovedFromMainAddress.Amount.ShouldBe(1_00000000);
                 assetMovedFromMainAddress.From.ShouldBe(userChargingAddress1);
-                
+
                 var assetMovedFromMainAddressIndexed = AssetMovedFromMainAddress.Parser.ParseFrom(logEvent.Indexed[0]);
                 assetMovedFromMainAddressIndexed.HolderId.ShouldBe(HolderId);
 
@@ -340,7 +343,7 @@ namespace AElf.Contracts.CentreAssetManagement
             InitializeContracts();
             var userChargingAddress1 = await GetUserChargingTestAsync();
             await RechargeAsync(10000_00000000, userChargingAddress1);
-            
+
             await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(new AssetMoveDto
             {
                 AddressCategoryHash =
@@ -382,19 +385,138 @@ namespace AElf.Contracts.CentreAssetManagement
             {
                 var moveAssetFromMainAddress = await CentreAssetManagementStub.MoveAssetFromMainAddress.SendAsync(
                     assetMoveFromMainToVirtualTokenLockDto);
-                var logEvent = moveAssetFromMainAddress.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(AssetMovedFromMainAddress));
-                
+                var logEvent =
+                    moveAssetFromMainAddress.TransactionResult.Logs.FirstOrDefault(l =>
+                        l.Name == nameof(AssetMovedFromMainAddress));
+
                 var assetMovedFromMainAddress = AssetMovedFromMainAddress.Parser.ParseFrom(logEvent.NonIndexed);
                 assetMovedFromMainAddress.Amount.ShouldBe(5000_00000000);
                 assetMovedFromMainAddress.To.ShouldBe(userChargingAddress1);
-                
+
                 var assetMovedFromMainAddressIndexed = AssetMovedFromMainAddress.Parser.ParseFrom(logEvent.Indexed[0]);
                 assetMovedFromMainAddressIndexed.HolderId.ShouldBe(HolderId);
             }
         }
-        
+
         [Fact]
         public async Task RequestWithdrawTest()
+        {
+            InitializeContracts();
+            var userChargingAddress1 = await GetUserChargingTestAsync();
+            await RechargeAsync(10000_00000000, userChargingAddress1);
+
+            {
+                var result = await CentreAssetManagementStub.RequestWithdraw.SendWithExceptionAsync(
+                    new WithdrawRequestDto
+                    {
+                        HolderId = HolderId,
+                        Amount = 10000_0000000
+                    });
+                result.TransactionResult.Error.ShouldContain("Address required.");
+            }
+
+            {
+                var result = await CentreAssetManagementStub.RequestWithdraw.SendWithExceptionAsync(
+                    new WithdrawRequestDto
+                    {
+                        HolderId = HolderId,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    });
+                result.TransactionResult.Error.ShouldContain("Amount required.");
+            }
+
+            {
+                var result = await CentreAssetManagementStub.RequestWithdraw.SendWithExceptionAsync(
+                    new WithdrawRequestDto
+                    {
+                        HolderId = HashHelper.ComputeFrom("HolderId"),
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        Amount = 10000_0000000
+                    });
+                result.TransactionResult.Error.ShouldContain("Holder is not initialized.");
+            }
+            
+            {
+                var stub = GetCentreAssetManagementStub(SampleAccount.Accounts[1].KeyPair);
+                var result = await stub.RequestWithdraw.SendWithExceptionAsync(
+                    new WithdrawRequestDto
+                    {
+                        HolderId = HolderId,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        Amount = 10000_0000000
+                    });
+                result.TransactionResult.Error.ShouldContain("Current management address can not move this asset.");
+            }
+
+            {
+                var stub = GetCentreAssetManagementStub(SampleAccount.Accounts[2].KeyPair);
+                var result = await stub.RequestWithdraw.SendWithExceptionAsync(
+                    new WithdrawRequestDto
+                    {
+                        HolderId = HolderId,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        Amount = 10000_0000000
+                    });
+                result.TransactionResult.Error.ShouldContain("Current key cannot make withdraw request.");
+            }
+            
+            {
+                var result = await CentreAssetManagementStub.RequestWithdraw.SendWithExceptionAsync(
+                    new WithdrawRequestDto
+                    {
+                        HolderId = HolderId,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        Amount = 10000_0000000
+                    });
+                result.TransactionResult.Error.ShouldContain("Insufficient balance to withdraw.");
+            }
+            
+            // move to main address
+            await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(new AssetMoveDto
+            {
+                AddressCategoryHash =
+                    await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                        new StringValue {Value = "token_lock"}),
+                HolderId = HolderId,
+                UserToken = "user1",
+                Amount = 10000_00000000
+            });
+            
+            {
+                var result = await CentreAssetManagementStub.RequestWithdraw.SendAsync(
+                    new WithdrawRequestDto
+                    {
+                        HolderId = HolderId,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                        Amount = 10000_0000000
+                    });
+
+                var logEvent = result.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(WithdrawRequested));
+                logEvent.ShouldNotBeNull();
+                var withdrawRequested = WithdrawRequested.Parser.ParseFrom(logEvent.NonIndexed);
+                withdrawRequested.Amount.ShouldBe(10000_0000000);
+                withdrawRequested.RequestAddress.ShouldBe(Address.FromPublicKey(DefaultKeyPair.PublicKey));
+                withdrawRequested.WithdrawId.ShouldNotBeNull();
+                withdrawRequested.WithdrawAddress.ShouldBe(Address.FromPublicKey(DefaultKeyPair.PublicKey));
+                
+                var withdrawRequestedIndexed = WithdrawRequested.Parser.ParseFrom(logEvent.Indexed.First());
+                withdrawRequestedIndexed.HolderId.ShouldBe(HolderId);
+
+                var withdrawInfo =
+                    await CentreAssetManagementStub.GetPendingWithdraw.CallAsync(withdrawRequested.WithdrawId);
+                withdrawInfo.Amount.ShouldBe(withdrawRequested.Amount);
+                withdrawInfo.Address.ShouldBe(withdrawRequested.WithdrawAddress);
+                withdrawInfo.HolderId.ShouldBe(withdrawRequestedIndexed.HolderId);
+                withdrawInfo.TotalRequired.ShouldBe(2);
+                // withdrawInfo.AddedTime
+                withdrawInfo.ManagementAddressesLimitAmount.ShouldBe(1000_000_00000000);
+                withdrawInfo.ApprovedAddresses.Count.ShouldBe(1);
+                withdrawInfo.ApprovedAddresses.ShouldContain(Address.FromPublicKey(DefaultKeyPair.PublicKey));
+            }
+        }
+
+        [Fact]
+        public async Task ApproveWithdrawTest()
         {
             InitializeContracts();
             var userChargingAddress1 = await GetUserChargingTestAsync();
@@ -410,6 +532,261 @@ namespace AElf.Contracts.CentreAssetManagement
                 UserToken = "user1",
                 Amount = 10000_00000000
             });
+            
+            var requestResult = await CentreAssetManagementStub.RequestWithdraw.SendAsync(
+                new WithdrawRequestDto
+                {
+                    HolderId = HolderId,
+                    Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    Amount = 10000_0000000,
+                });
+            
+            var requestLogEvent = requestResult.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(WithdrawRequested));
+            var withdrawRequested = WithdrawRequested.Parser.ParseFrom(requestLogEvent.NonIndexed);
+
+            // request
+            await CentreAssetManagementStub.RequestWithdraw.SendAsync(
+                new WithdrawRequestDto
+                {
+                    HolderId = HolderId,
+                    Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    Amount = 10000_0000000
+                });
+
+            {
+                var result = await CentreAssetManagementStub.ApproveWithdraw.SendWithExceptionAsync(
+                    new WithdrawApproveDto
+                    {
+                        Id = HashHelper.ComputeFrom("WithdrawId"),
+                        Amount = 10000_0000000,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey)
+                    });
+                result.TransactionResult.Error.ShouldContain("Withdraw not exists.");
+            }
+            
+            {
+                var result = await CentreAssetManagementStub.ApproveWithdraw.SendWithExceptionAsync(
+                    new WithdrawApproveDto
+                    {
+                        Id = withdrawRequested.WithdrawId,
+                        Amount = 10000_000000,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey)
+                    });
+                result.TransactionResult.Error.ShouldContain("Withdraw data not matched.");
+            }
+            
+            {
+                var result = await CentreAssetManagementStub.ApproveWithdraw.SendWithExceptionAsync(
+                    new WithdrawApproveDto
+                    {
+                        Id = withdrawRequested.WithdrawId,
+                        Amount = 10000_0000000,
+                        Address = Accounts[1].Address
+                    });
+                result.TransactionResult.Error.ShouldContain("Withdraw data not matched.");
+            }
+
+            {
+                var stub = GetCentreAssetManagementStub(Accounts[5].KeyPair);
+                var result = await stub.ApproveWithdraw.SendWithExceptionAsync(
+                    new WithdrawApproveDto
+                    {
+                        Id = withdrawRequested.WithdrawId,
+                        Amount = 10000_0000000,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey)
+                    });
+                result.TransactionResult.Error.ShouldContain(
+                    "Sender is not registered as management address in the holder.");
+            }
+            
+            {
+                var stub = GetCentreAssetManagementStub(Accounts[5].KeyPair);
+                var result = await stub.ApproveWithdraw.SendWithExceptionAsync(
+                    new WithdrawApproveDto
+                    {
+                        Id = withdrawRequested.WithdrawId,
+                        Amount = 10000_0000000,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey)
+                    });
+                result.TransactionResult.Error.ShouldContain(
+                    "Sender is not registered as management address in the holder.");
+            }
+            
+            {
+                var stub = GetCentreAssetManagementStub(Accounts[1].KeyPair);
+                var result = await stub.ApproveWithdraw.SendWithExceptionAsync(
+                    new WithdrawApproveDto
+                    {
+                        Id = withdrawRequested.WithdrawId,
+                        Amount = 10000_0000000,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey)
+                    });
+                result.TransactionResult.Error.ShouldContain(
+                    "Current management address cannot approve, amount limited.");
+            }
+            
+            {
+                var result = await CentreAssetManagementStub.ApproveWithdraw.SendAsync(
+                    new WithdrawApproveDto
+                    {
+                        Id = withdrawRequested.WithdrawId,
+                        Amount = 10000_0000000,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey)
+                    });
+                var logEvent = result.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(WithdrawReleased));
+                logEvent.ShouldBeNull();
+            }
+
+            var holder = await CentreAssetManagementStub.GetHolderInfo.CallAsync(HolderId);
+            await CheckBalanceAsync(holder.MainAddress, 10000_00000000);
+            {
+                var stub = GetCentreAssetManagementStub(Accounts[2].KeyPair);
+                var result = await stub.ApproveWithdraw.SendAsync(
+                    new WithdrawApproveDto
+                    {
+                        Id = withdrawRequested.WithdrawId,
+                        Amount = 10000_0000000,
+                        Address = Address.FromPublicKey(DefaultKeyPair.PublicKey)
+                    });
+                var logEvent = result.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(WithdrawReleased));
+                logEvent.ShouldNotBeNull();
+                var withdrawReleased = WithdrawReleased.Parser.ParseFrom(logEvent.NonIndexed);
+                withdrawReleased.Amount.ShouldBe(10000_0000000);
+                withdrawReleased.WithdrawAddress.ShouldBe(Address.FromPublicKey(DefaultKeyPair.PublicKey));
+
+                {
+                    var withdrawReleasedIndexed = WithdrawReleased.Parser.ParseFrom(logEvent.Indexed.First());
+                    withdrawReleasedIndexed.HolderId.ShouldBe(HolderId);
+                }
+                
+                {
+                    var withdrawReleasedIndexed = WithdrawReleased.Parser.ParseFrom(logEvent.Indexed.Last());
+                    withdrawReleasedIndexed.WithdrawId.ShouldBe(withdrawRequested.WithdrawId);
+                }
+            }
+            
+            var withdrawInfo =
+                await CentreAssetManagementStub.GetPendingWithdraw.CallAsync(withdrawRequested.WithdrawId);
+            withdrawInfo.ShouldBe(new WithdrawInfo());
+            await CheckBalanceAsync(holder.MainAddress, 9000_00000000);
+        }
+
+        [Fact]
+        public async Task CancelWithdrawsTest()
+        {
+            InitializeContracts();
+            var userChargingAddress1 = await GetUserChargingTestAsync();
+            await RechargeAsync(10000_00000000, userChargingAddress1);
+            
+            // move to main address
+            await CentreAssetManagementStub.MoveAssetToMainAddress.SendAsync(new AssetMoveDto
+            {
+                AddressCategoryHash =
+                    await CentreAssetManagementStub.GetCategoryHash.CallAsync(
+                        new StringValue {Value = "token_lock"}),
+                HolderId = HolderId,
+                UserToken = "user1",
+                Amount = 10000_00000000
+            });
+            
+            var requestResult = await CentreAssetManagementStub.RequestWithdraw.SendAsync(
+                new WithdrawRequestDto
+                {
+                    HolderId = HolderId,
+                    Address = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    Amount = 10000_0000000,
+                });
+
+            var requestLogEvent = requestResult.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(WithdrawRequested));
+            var withdrawRequested = WithdrawRequested.Parser.ParseFrom(requestLogEvent.NonIndexed);
+            var withdrawId = withdrawRequested.WithdrawId;
+            // var withdrawInfo = await CentreAssetManagementStub.GetPendingWithdraw.CallAsync(withdrawId);
+
+            {
+                var cancelWithdrawResult = await CentreAssetManagementStub.CancelWithdraws.SendWithExceptionAsync(
+                    new CancelWithdrawsDto
+                    {
+                        HolderId = HashHelper.ComputeFrom("HolderId")
+                    });
+                
+                cancelWithdrawResult.TransactionResult.Error.ShouldContain("Holder is not initialized.");
+            }
+
+            {
+                //withdraw id not exists
+                await CentreAssetManagementStub.CancelWithdraws.SendAsync(
+                    new CancelWithdrawsDto
+                    {
+                        HolderId = HolderId,
+                        Ids = {HashHelper.ComputeFrom("WithdrawId")}
+                    });
+            }
+            
+            {
+                //withdraw id not exists
+                await CentreAssetManagementStub.CancelWithdraws.SendAsync(
+                    new CancelWithdrawsDto
+                    {
+                        HolderId = HolderId,
+                        Ids = {HashHelper.ComputeFrom("WithdrawId")}
+                    });
+            }
+
+            {
+                // create new holder
+                var createHolderResult = await CentreAssetManagementStub.CreateHolder.SendAsync(new HolderCreateDto()
+                {
+                    Symbol = "ELF",
+                    ManagementAddresses =
+                    {
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[0].KeyPair.PublicKey),
+                            Amount = long.MaxValue,
+                            ManagementAddressesLimitAmount = 1000_000_00000000,
+                            ManagementAddressesInTotal = 2
+                        },
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey),
+                            Amount = 1000_000000,
+                            ManagementAddressesLimitAmount = 1000_000,
+                        },
+                        new ManagementAddress()
+                        {
+                            Address = Address.FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey),
+                            Amount = 1000_000_00000000,
+                            ManagementAddressesLimitAmount = 1000_000_00000000,
+                        }
+                    },
+                    OwnerAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    ShutdownAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
+                    SettingsEffectiveTime = 3600
+                });
+
+                {
+                    var cancelWithdrawResult = await CentreAssetManagementStub.CancelWithdraws.SendWithExceptionAsync(
+                        new CancelWithdrawsDto
+                        {
+                            HolderId = createHolderResult.Output.Id,
+                            Ids = {withdrawId}
+                        });
+                    cancelWithdrawResult.TransactionResult.Error.ShouldContain("Holder not matched.");
+                }
+            }
+            
+            var withdrawInfoBefore = await CentreAssetManagementStub.GetPendingWithdraw.CallAsync(withdrawId);
+            withdrawInfoBefore.ShouldNotBeNull();
+            
+            await CentreAssetManagementStub.CancelWithdraws.SendAsync(
+                new CancelWithdrawsDto
+                {
+                    HolderId = HolderId,
+                    Ids = {withdrawId}
+                });
+
+            var withdrawInfoAfter = await CentreAssetManagementStub.GetPendingWithdraw.CallAsync(withdrawId);
+            withdrawInfoAfter.ShouldBe(new WithdrawInfo());
         }
 
         [Fact]
@@ -421,7 +798,6 @@ namespace AElf.Contracts.CentreAssetManagement
             //deposit address (exchange virtual user address)
             //vote address (exchange virtual user address)
             //main address (exchange virtual main address)
-
 
             AssetMoveDto assetMoveFromVirtualToMainDto1 = new AssetMoveDto()
             {
@@ -460,7 +836,6 @@ namespace AElf.Contracts.CentreAssetManagement
                 HolderId = HolderId,
                 AddressCategoryHash = HashHelper.ComputeFrom("token_lock")
             };
-
 
             //move elf token from main address to user1's voting address
             var moveFromMainToVirtualTokenLockResult =
@@ -603,7 +978,7 @@ namespace AElf.Contracts.CentreAssetManagement
                     UserToken = "user1"
                 });
         }
-        
+
         private async Task RechargeAsync(long amount, Address userChargingAddress)
         {
             await TokenContractStub.Transfer.SendAsync(new TransferInput

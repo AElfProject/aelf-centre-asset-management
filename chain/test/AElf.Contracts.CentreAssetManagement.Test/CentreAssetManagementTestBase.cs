@@ -49,12 +49,14 @@ namespace AElf.Contracts.CentreAssetManagement
                         new ManagementAddress()
                         {
                             Address = Address.FromPublicKey(SampleAccount.Accounts[1].KeyPair.PublicKey),
-                            Amount = 1000_00000000,
+                            Amount = 1000_000000,
+                            ManagementAddressesLimitAmount = 1000_000,
                         },
                         new ManagementAddress()
                         {
                             Address = Address.FromPublicKey(SampleAccount.Accounts[2].KeyPair.PublicKey),
                             Amount = 1000_000_00000000,
+                            ManagementAddressesLimitAmount = 1000_000_00000000,
                         }
                     },
                     OwnerAddress = Address.FromPublicKey(DefaultKeyPair.PublicKey),
