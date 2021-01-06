@@ -73,7 +73,7 @@ namespace AElf.Contracts.CentreAssetManagement
             foreach (var contractCallWhiteLists in input.CategoryToContactCallWhiteListsMap)
             {
                 State.CategoryToContractCallWhiteListsMap.Set(
-                    CalculateCategoryHash(new StringValue {Value = contractCallWhiteLists.Key}),
+                    CalculateCategoryHash(contractCallWhiteLists.Key),
                     contractCallWhiteLists.Value);
             }
 
@@ -459,7 +459,7 @@ namespace AElf.Contracts.CentreAssetManagement
             var centreAssetManagementInfo = State.CentreAssetManagementInfo.Value;
             foreach (var contractCallWhiteLists in input.CategoryToContactCallWhiteListsMap)
             {
-                var categoryHash = CalculateCategoryHash(new StringValue {Value = contractCallWhiteLists.Key});
+                var categoryHash = CalculateCategoryHash(contractCallWhiteLists.Key);
                 if (State.CategoryToContractCallWhiteListsMap[categoryHash] == null)
                     centreAssetManagementInfo.Categories.Add(contractCallWhiteLists.Key);
                 State.CategoryToContractCallWhiteListsMap.Set(categoryHash, contractCallWhiteLists.Value);
@@ -487,7 +487,7 @@ namespace AElf.Contracts.CentreAssetManagement
             foreach (var category in centreAssetManagementInfo.Categories)
             {
                 categoryToContractCallWhiteListsDto.CategoryToContactCallWhiteListsMap[category] =
-                    State.CategoryToContractCallWhiteListsMap[GetCategoryHash(new StringValue {Value = category})];
+                    State.CategoryToContractCallWhiteListsMap[CalculateCategoryHash(category)];
             }
 
             return categoryToContractCallWhiteListsDto;
@@ -501,17 +501,16 @@ namespace AElf.Contracts.CentreAssetManagement
                 Category = input.Category,
                 List =
                 {
-                    State.CategoryToContractCallWhiteListsMap[GetCategoryHash(new StringValue {Value = input.Category})]
-                        .List
+                    State.CategoryToContractCallWhiteListsMap[CalculateCategoryHash(input.Category)].List
                 }
             };
             return result;
         }
 
         [View]
-        public override Hash GetCategoryHash(StringValue category)
+        public override Hash GetCategoryHash(CategoryDto input)
         {
-            var hash = CalculateCategoryHash(category);
+            var hash = CalculateCategoryHash(input.Category);
             return State.CategoryToContractCallWhiteListsMap[hash] != null ? hash : null;
         }
 
@@ -543,9 +542,9 @@ namespace AElf.Contracts.CentreAssetManagement
             return State.Withdraws[input];
         }
 
-        private Hash CalculateCategoryHash(StringValue category)
+        private Hash CalculateCategoryHash(string category)
         {
-            return HashHelper.ComputeFrom(category.Value);
+            return HashHelper.ComputeFrom(category);
         }
 
         private void ValidateHolderInfo(HolderInfo holderInfo)

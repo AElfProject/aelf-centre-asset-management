@@ -68,7 +68,7 @@ namespace AElf.Contracts.CentreAssetManagement
             );
 
             var cateGoryHash =
-                await CentreAssetManagementStub.GetCategoryHash.CallAsync(new StringValue {Value = "token_lock"});
+                await CentreAssetManagementStub.GetCategoryHash.CallAsync(new CategoryDto {Category = "token_lock"});
             cateGoryHash.ShouldNotBeNull();
 
             {
@@ -238,7 +238,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 {
                     AddressCategoryHash =
                         await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                            new StringValue {Value = "token_lock"}),
+                            new CategoryDto{Category = "token_lock"}),
                     HolderId = HolderId,
                     UserToken = "user1"
                 });
@@ -262,7 +262,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 {
                     AddressCategoryHash =
                         await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                            new StringValue {Value = "token_lock"}),
+                            new CategoryDto {Category = "token_lock"}),
                     HolderId = HolderId,
                     UserToken = "user1"
                 });
@@ -284,7 +284,7 @@ namespace AElf.Contracts.CentreAssetManagement
                     {
                         AddressCategoryHash =
                             await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                                new StringValue {Value = "token_lock"}),
+                                new CategoryDto{Category = "token_lock"}),
                         HolderId = HolderId,
                         UserToken = "user1",
                         Amount = 1_00000000
@@ -299,7 +299,7 @@ namespace AElf.Contracts.CentreAssetManagement
                     {
                         AddressCategoryHash =
                             await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                                new StringValue {Value = "token_lock"}),
+                                new CategoryDto{Category = "token_lock"}),
                         HolderId = HolderId,
                         UserToken = "user1",
                         Amount = 1_00000000
@@ -348,7 +348,7 @@ namespace AElf.Contracts.CentreAssetManagement
             {
                 AddressCategoryHash =
                     await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                        new StringValue {Value = "token_lock"}),
+                        new CategoryDto{Category = "token_lock"}),
                 HolderId = HolderId,
                 UserToken = "user1",
                 Amount = 10000_00000000
@@ -476,7 +476,7 @@ namespace AElf.Contracts.CentreAssetManagement
             {
                 AddressCategoryHash =
                     await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                        new StringValue {Value = "token_lock"}),
+                        new CategoryDto{Category = "token_lock"}),
                 HolderId = HolderId,
                 UserToken = "user1",
                 Amount = 10000_00000000
@@ -527,7 +527,7 @@ namespace AElf.Contracts.CentreAssetManagement
             {
                 AddressCategoryHash =
                     await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                        new StringValue {Value = "token_lock"}),
+                        new CategoryDto{Category = "token_lock"}),
                 HolderId = HolderId,
                 UserToken = "user1",
                 Amount = 10000_00000000
@@ -683,7 +683,7 @@ namespace AElf.Contracts.CentreAssetManagement
             {
                 AddressCategoryHash =
                     await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                        new StringValue {Value = "token_lock"}),
+                        new CategoryDto{Category = "token_lock"}),
                 HolderId = HolderId,
                 UserToken = "user1",
                 Amount = 10000_00000000
@@ -973,7 +973,7 @@ namespace AElf.Contracts.CentreAssetManagement
                 {
                     AddressCategoryHash =
                         await CentreAssetManagementStub.GetCategoryHash.CallAsync(
-                            new StringValue {Value = "token_lock"}),
+                            new CategoryDto{Category = "token_lock"}),
                     HolderId = HolderId,
                     UserToken = "user1"
                 });

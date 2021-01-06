@@ -91,7 +91,7 @@ service CentreAssetManagement {
         option (aelf.is_view) = true;
     }
     
-    rpc GetCategoryHash(google.protobuf.StringValue) returns (aelf.Hash) {
+    rpc GetCategoryHash(CategoryDto) returns (aelf.Hash) {
         option (aelf.is_view) = true;
     }
     
