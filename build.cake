@@ -70,6 +70,53 @@ Task("Build-Release")
     DotNetCoreBuild(solution, buildSetting);
 });
 
+Task("Test-with-Codecov")
+    .Description("operation test_with_codecov")
+    .IsDependentOn("Build")
+    .Does(() =>
+{
+    var testSetting = new DotNetCoreTestSettings{
+        Configuration = configuration,
+        NoRestore = true,
+        NoBuild = true,
+        ArgumentCustomization = args => {
+            return args
+                .Append("--logger trx")
+                .Append("--settings CodeCoverage.runsettings")
+                .Append("--collect:\"XPlat Code Coverage\"");
+        }                
+    };
+    var codecovToken = "$CODECOV_TOKEN";
+    var actions = new List<Action>();
+    var testProjects = GetFiles("./test/*.Tests/*.csproj");
+
+    foreach(var testProject in testProjects)
+    {
+        var action=new Action(()=>{
+            DotNetCoreTest(testProject.FullPath, testSetting);
+
+            // if(codecovToken!=""){
+            //     var dir=testProject.GetDirectory().FullPath;
+            //     var reports = GetFiles(dir + "/TestResults/*/coverage.cobertura.xml");
+
+            //     foreach(var report in reports)
+            //     {
+            //         Codecov(report.FullPath,"$CODECOV_TOKEN");
+            //     }
+            // }
+        });
+        actions.Add(action);
+    }
+
+
+    var options = new ParallelOptions {
+        MaxDegreeOfParallelism = 1,
+        //CancellationToken = cancellationToken
+    };
+
+    Parallel.Invoke(options, actions.ToArray());
+});
+
 Task("Run-Unit-Tests")
     .Description("operation test")
     .IsDependentOn("Build")

@@ -22,7 +22,7 @@ jobs:
   - script: choco install unzip
     displayName: 'Install unzip'
   - powershell: Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-  - script: PowerShell.exe -file build.ps1 -target=Run-Unit-Tests
+  - script: PowerShell.exe -file build.ps1 -target=Test-with-Codecov
     displayName: 'Build and Test'
 # All tasks on Linux
 - job: build_all_linux
@@ -39,7 +39,7 @@ jobs:
     displayName: 'Download AElf build tools'
   - script: bash chain/scripts/install.sh
     displayName: 'Install protobuf'
-  - script: bash build.sh -target=Run-Unit-Tests
+  - script: bash build.sh -target=Test-with-Codecov
     displayName: 'Build and Test'
 # All tasks on macOS
 - job: build_all_darwin
@@ -57,5 +57,5 @@ jobs:
     displayName: 'Download AElf build tools'
   - script: bash chain/scripts/install.sh
     displayName: 'Install protobuf'
-  - script: bash build.sh -target=Run-Unit-Tests
+  - script: bash build.sh -target=Test-with-Codecov
     displayName: 'Build and Test'
