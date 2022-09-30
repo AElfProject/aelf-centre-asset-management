@@ -28,11 +28,11 @@ Task("Restore")
     .Description("restore project dependencies")
     .Does(() =>
 {
-    var restoreSettings = new DotNetCoreRestoreSettings{
-        ArgumentCustomization = args => {
-            return args.Append("-v quiet");}
-};
-    DotNetCoreRestore(solution,restoreSettings);
+    DotNetCoreRestore(solution, new DotNetCoreRestoreSettings
+    {
+        Verbosity = DotNetCoreVerbosity.Quiet,
+        Sources = new [] { "https://www.myget.org/F/aelf-project-dev/api/v3/index.json", "https://api.nuget.org/v3/index.json" }
+    });
 });
 Task("Build")
     .Description("Compilation project")
@@ -41,11 +41,10 @@ Task("Build")
     .Does(() =>
 {
     var buildSetting = new DotNetCoreBuildSettings{
-        Configuration = configuration,
         NoRestore = true,
+        Configuration = configuration,
         ArgumentCustomization = args => {
             return args.Append("/clp:ErrorsOnly")
-                       .Append("/p:GeneratePackageOnBuild=false")
                        .Append("-v quiet");}
     };
      
@@ -60,7 +59,7 @@ Task("Build-Release")
     var buildVersion = (DateTime.UtcNow.Ticks - 621355968000000000) / 10000000 / 86400;
     var buildSetting = new DotNetCoreBuildSettings{
         NoRestore = true,
-        Configuration = "Release",
+        Configuration = configuration,
         ArgumentCustomization = args => {                   
             return args.Append("/clp:ErrorsOnly")                 
                        .Append("-v quiet")
@@ -72,7 +71,6 @@ Task("Build-Release")
      
     DotNetCoreBuild(solution, buildSetting);
 });
-
 Task("Test-with-Codecov")
     .Description("operation test_with_codecov")
     .IsDependentOn("Build")
@@ -91,7 +89,7 @@ Task("Test-with-Codecov")
     };
     var codecovToken = "$CODECOV_TOKEN";
     var actions = new List<Action>();
-    var testProjects = GetFiles("./test/*.Tests/*.csproj");
+    var testProjects = GetFiles("./chain/test/*.Tests/*.csproj");
 
     foreach(var testProject in testProjects)
     {
@@ -119,64 +117,19 @@ Task("Test-with-Codecov")
 
     Parallel.Invoke(options, actions.ToArray());
 });
-
-Task("Test-with-Codecov-N")
-    .Description("operation test_with_codecov")
-    .IsDependentOn("Build")
-    .Does(() =>
-{
-    var testSetting = new DotNetCoreTestSettings{
-        Configuration = configuration,
-        NoRestore = true,
-        NoBuild = true,
-        ArgumentCustomization = args => {
-            return args
-                .Append("--logger trx")
-                .Append("--settings CodeCoverage.runsettings")
-                .Append("--collect:\"XPlat Code Coverage\"");
-        }                
-    };
-    var testSetting_nocoverage = new DotNetCoreTestSettings{
-        NoRestore = true,
-        NoBuild = true,
-        ArgumentCustomization = args => {
-            return args
-                .Append("--logger trx");
-        }                
-    };
-    var codecovToken = "$CODECOV_TOKEN";
-    var actions = new List<Action>();
-    var testProjects = GetFiles("./test/*.Tests/*.csproj");
-    var testProjectList = testProjects.OrderBy(p=>p.FullPath).ToList();
-    var n = Argument("n",1);
-    var parts = Argument("parts",1);
-
-    Information($"n:{n}, parts:{parts}");
-    int i=0;
-    foreach(var testProject in testProjectList)
-    {
-        if(i++ % parts == n - 1){
-            DotNetCoreTest(testProject.FullPath, testSetting);
-        }else{
-            DotNetCoreTest(testProject.FullPath, testSetting_nocoverage);
-        }
-    }
-});
-
 Task("Run-Unit-Tests")
     .Description("operation test")
     .IsDependentOn("Build")
     .Does(() =>
 {
     var testSetting = new DotNetCoreTestSettings{
-        Configuration = configuration,
         NoRestore = true,
         NoBuild = true,
         ArgumentCustomization = args => {
             return args.Append("--logger trx");
         }
 };
-    var testProjects = GetFiles("./test/*.Tests/*.csproj");
+    var testProjects = GetFiles("./chain/test/*.Tests/*.csproj");
 
 
     foreach(var testProject in testProjects)
@@ -187,7 +140,7 @@ Task("Run-Unit-Tests")
 Task("Upload-Coverage")
     .Does(() =>
 {
-    var reports = GetFiles("./test/*.Tests/TestResults/*/coverage.cobertura.xml");
+    var reports = GetFiles("./chain/test/*.Tests/TestResults/*/coverage.cobertura.xml");
 
     foreach(var report in reports)
     {
