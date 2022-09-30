@@ -1,3 +1,5 @@
+#tool nuget:?package=Codecov
+#addin nuget:?package=Cake.Codecov&version=0.8.0
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Debug");
 var rootPath     = "./";
@@ -5,7 +7,7 @@ var srcPath      = rootPath + "chain/src/";
 var contractPath = rootPath + "chain/contract/";
 var testPath     = rootPath + "chain/test/";
 var distPath     = rootPath + "chain/aelf-node/";
-var solution     = rootPath + "chain/AElf.Boilerplate.sln";
+var solution     = rootPath + "chain/AElf.Contracts.CentreAssetManagement.sln";
 var srcProjects  = GetFiles(srcPath + "**/*.csproj");
 var contractProjects  = GetFiles(contractPath + "**/*.csproj");
 
@@ -26,11 +28,11 @@ Task("Restore")
     .Description("restore project dependencies")
     .Does(() =>
 {
-    DotNetCoreRestore("./chain/AElf.Boilerplate.sln", new DotNetCoreRestoreSettings
-    {
-        Verbosity = DotNetCoreVerbosity.Quiet,
-        Sources = new [] { "https://www.myget.org/F/aelf-project-dev/api/v3/index.json", "https://api.nuget.org/v3/index.json" }
-    });
+    var restoreSettings = new DotNetCoreRestoreSettings{
+        ArgumentCustomization = args => {
+            return args.Append("-v quiet");}
+};
+    DotNetCoreRestore(solution,restoreSettings);
 });
 Task("Build")
     .Description("Compilation project")
@@ -39,10 +41,11 @@ Task("Build")
     .Does(() =>
 {
     var buildSetting = new DotNetCoreBuildSettings{
-        NoRestore = true,
         Configuration = configuration,
+        NoRestore = true,
         ArgumentCustomization = args => {
             return args.Append("/clp:ErrorsOnly")
+                       .Append("/p:GeneratePackageOnBuild=false")
                        .Append("-v quiet");}
     };
      
@@ -57,7 +60,7 @@ Task("Build-Release")
     var buildVersion = (DateTime.UtcNow.Ticks - 621355968000000000) / 10000000 / 86400;
     var buildSetting = new DotNetCoreBuildSettings{
         NoRestore = true,
-        Configuration = configuration,
+        Configuration = "Release",
         ArgumentCustomization = args => {                   
             return args.Append("/clp:ErrorsOnly")                 
                        .Append("-v quiet")
@@ -117,25 +120,84 @@ Task("Test-with-Codecov")
     Parallel.Invoke(options, actions.ToArray());
 });
 
+Task("Test-with-Codecov-N")
+    .Description("operation test_with_codecov")
+    .IsDependentOn("Build")
+    .Does(() =>
+{
+    var testSetting = new DotNetCoreTestSettings{
+        Configuration = configuration,
+        NoRestore = true,
+        NoBuild = true,
+        ArgumentCustomization = args => {
+            return args
+                .Append("--logger trx")
+                .Append("--settings CodeCoverage.runsettings")
+                .Append("--collect:\"XPlat Code Coverage\"");
+        }                
+    };
+    var testSetting_nocoverage = new DotNetCoreTestSettings{
+        NoRestore = true,
+        NoBuild = true,
+        ArgumentCustomization = args => {
+            return args
+                .Append("--logger trx");
+        }                
+    };
+    var codecovToken = "$CODECOV_TOKEN";
+    var actions = new List<Action>();
+    var testProjects = GetFiles("./test/*.Tests/*.csproj");
+    var testProjectList = testProjects.OrderBy(p=>p.FullPath).ToList();
+    var n = Argument("n",1);
+    var parts = Argument("parts",1);
+
+    Information($"n:{n}, parts:{parts}");
+    int i=0;
+    foreach(var testProject in testProjectList)
+    {
+        if(i++ % parts == n - 1){
+            DotNetCoreTest(testProject.FullPath, testSetting);
+        }else{
+            DotNetCoreTest(testProject.FullPath, testSetting_nocoverage);
+        }
+    }
+});
+
 Task("Run-Unit-Tests")
     .Description("operation test")
     .IsDependentOn("Build")
     .Does(() =>
 {
     var testSetting = new DotNetCoreTestSettings{
+        Configuration = configuration,
         NoRestore = true,
         NoBuild = true,
         ArgumentCustomization = args => {
             return args.Append("--logger trx");
         }
 };
-    var testProjects = GetFiles("./chain/test/*.Tests/*.csproj");
+    var testProjects = GetFiles("./test/*.Tests/*.csproj");
 
 
     foreach(var testProject in testProjects)
     {
         DotNetCoreTest(testProject.FullPath, testSetting);
     }
+});
+Task("Upload-Coverage")
+    .Does(() =>
+{
+    var reports = GetFiles("./test/*.Tests/TestResults/*/coverage.cobertura.xml");
+
+    foreach(var report in reports)
+    {
+        Codecov(report.FullPath,"$CODECOV_TOKEN");
+    }
+});
+Task("Upload-Coverage-Azure")
+    .Does(() =>
+{
+    Codecov("./CodeCoverage/Cobertura.xml","$CODECOV_TOKEN");
 });
 Task("Publish-MyGet")
     .IsDependentOn("Build-Release")
