@@ -55,7 +55,7 @@ jobs:
       - task: reportgenerator@5
         displayName: ReportGenerator
         inputs:
-          reports: '$(Build.SourcesDirectory)/test/*/TestResults/*/coverage.cobertura.xml'
+          reports: '$(Build.SourcesDirectory)/chain/test/*/TestResults/*/coverage.cobertura.xml'
           targetdir: '$(Build.SourcesDirectory)/CodeCoverage'
           reporttypes: 'Cobertura'
           assemblyfilters: '-xunit*'
