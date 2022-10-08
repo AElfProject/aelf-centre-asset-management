@@ -7,7 +7,7 @@ var srcPath      = rootPath + "chain/src/";
 var contractPath = rootPath + "chain/contract/";
 var testPath     = rootPath + "chain/test/";
 var distPath     = rootPath + "chain/aelf-node/";
-var solution     = rootPath + "chain/AElf.Contracts.CentreAssetManagement.sln";
+var solution     = rootPath + "chain/AElf.Boilerplate.sln";
 var srcProjects  = GetFiles(srcPath + "**/*.csproj");
 var contractProjects  = GetFiles(contractPath + "**/*.csproj");
 
@@ -89,7 +89,7 @@ Task("Test-with-Codecov")
     };
     var codecovToken = "$CODECOV_TOKEN";
     var actions = new List<Action>();
-    var testProjects = GetFiles("./chain/test/*.Tests/*.csproj");
+    var testProjects = GetFiles("./chain/test/*.Test/*.csproj");
 
     foreach(var testProject in testProjects)
     {
@@ -129,7 +129,7 @@ Task("Run-Unit-Tests")
             return args.Append("--logger trx");
         }
 };
-    var testProjects = GetFiles("./chain/test/*.Tests/*.csproj");
+    var testProjects = GetFiles("./chain/test/*.Test/*.csproj");
 
 
     foreach(var testProject in testProjects)
@@ -140,7 +140,7 @@ Task("Run-Unit-Tests")
 Task("Upload-Coverage")
     .Does(() =>
 {
-    var reports = GetFiles("./chain/test/*.Tests/TestResults/*/coverage.cobertura.xml");
+    var reports = GetFiles("./chain/test/*.Test/TestResults/*/coverage.cobertura.xml");
 
     foreach(var report in reports)
     {
