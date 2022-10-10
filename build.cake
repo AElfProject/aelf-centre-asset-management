@@ -1,3 +1,5 @@
+#tool nuget:?package=Codecov
+#addin nuget:?package=Cake.Codecov&version=0.8.0
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Debug");
 var rootPath     = "./";
@@ -26,7 +28,7 @@ Task("Restore")
     .Description("restore project dependencies")
     .Does(() =>
 {
-    DotNetCoreRestore("./chain/AElf.Boilerplate.sln", new DotNetCoreRestoreSettings
+    DotNetCoreRestore(solution, new DotNetCoreRestoreSettings
     {
         Verbosity = DotNetCoreVerbosity.Quiet,
         Sources = new [] { "https://www.myget.org/F/aelf-project-dev/api/v3/index.json", "https://api.nuget.org/v3/index.json" }
@@ -69,7 +71,52 @@ Task("Build-Release")
      
     DotNetCoreBuild(solution, buildSetting);
 });
+Task("Test-with-Codecov")
+    .Description("operation test_with_codecov")
+    .IsDependentOn("Build")
+    .Does(() =>
+{
+    var testSetting = new DotNetCoreTestSettings{
+        Configuration = configuration,
+        NoRestore = true,
+        NoBuild = true,
+        ArgumentCustomization = args => {
+            return args
+                .Append("--logger trx")
+                .Append("--settings CodeCoverage.runsettings")
+                .Append("--collect:\"XPlat Code Coverage\"");
+        }                
+    };
+    var codecovToken = "$CODECOV_TOKEN";
+    var actions = new List<Action>();
+    var testProjects = GetFiles("./chain/test/*.Test/*.csproj");
 
+    foreach(var testProject in testProjects)
+    {
+        var action=new Action(()=>{
+            DotNetCoreTest(testProject.FullPath, testSetting);
+
+            // if(codecovToken!=""){
+            //     var dir=testProject.GetDirectory().FullPath;
+            //     var reports = GetFiles(dir + "/TestResults/*/coverage.cobertura.xml");
+
+            //     foreach(var report in reports)
+            //     {
+            //         Codecov(report.FullPath,"$CODECOV_TOKEN");
+            //     }
+            // }
+        });
+        actions.Add(action);
+    }
+
+
+    var options = new ParallelOptions {
+        MaxDegreeOfParallelism = 1,
+        //CancellationToken = cancellationToken
+    };
+
+    Parallel.Invoke(options, actions.ToArray());
+});
 Task("Run-Unit-Tests")
     .Description("operation test")
     .IsDependentOn("Build")
@@ -82,13 +129,28 @@ Task("Run-Unit-Tests")
             return args.Append("--logger trx");
         }
 };
-    var testProjects = GetFiles("./chain/test/*.Tests/*.csproj");
+    var testProjects = GetFiles("./chain/test/*.Test/*.csproj");
 
 
     foreach(var testProject in testProjects)
     {
         DotNetCoreTest(testProject.FullPath, testSetting);
     }
+});
+Task("Upload-Coverage")
+    .Does(() =>
+{
+    var reports = GetFiles("./chain/test/*.Test/TestResults/*/coverage.cobertura.xml");
+
+    foreach(var report in reports)
+    {
+        Codecov(report.FullPath,"$CODECOV_TOKEN");
+    }
+});
+Task("Upload-Coverage-Azure")
+    .Does(() =>
+{
+    Codecov("./CodeCoverage/Cobertura.xml","$CODECOV_TOKEN");
 });
 Task("Publish-MyGet")
     .IsDependentOn("Build-Release")
